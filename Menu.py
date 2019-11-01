@@ -1,15 +1,15 @@
-print("Bienvenue dans le Menu")
-print("Choisir une option : \n"
-      "-1 : Générer des couples de clés publiques / privées \n"
-      "0 : Générer un certificat \n"
-      "1 : Vérifier la validité d'un certificat \n"
-      "2 : Partager une clé secrète \n"
-      "3 : Chiffrer un message \n"
-      "4 : Signer un message \n"
-      "5 : Vérifier une signature \n"
-      "6 : Réaliser toutes les options"
+print("Hi ! This is the Menu.")
+print("Please, choose an option: \n"
+      "-1 : Generate public / private key pairs \n"
+      "0 : Generate a certificate \n"
+      "1 : Check the validity of a certificate \n"
+      "2 : Share a secret key \n"
+      "3 : Encrypt a message \n"
+      "4 : Sign a message \n"
+      "5 : Verify a signature \n"
+      "6 : Complete all options"
       )
 
-option = input("Indiquez l'option : ")
+option = input("Specify the option : ")
 option = int(option)
-print("Vous avez choisi l'option", option)
+print("You have chosen the optionn", option)
