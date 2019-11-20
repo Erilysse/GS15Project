@@ -1,0 +1,108 @@
+import crypto_utils
+
+"""
+Camellia key has to be 128 bits.
+"""
+
+MASK8 = 0xff
+MASK32 = 0xffffffff
+MASK64 = 0xffffffffffffffff
+MASK128 = 0xffffffffffffffffffffffffffffffff
+sigma =[
+    0xA09E667F3BCC908B,
+    0xB67AE8584CAA73B2,
+    0xC6EF372FE94F82BE,
+    0x54FF53A5F1D36F1C,
+    0x10E527FADE682D1D,
+    0xB05688C2B3E6C1FD
+]
+
+class CamelliaKey(object):
+    """
+    In this function : length of the key, camellia key
+    """
+
+    def __init__(self, length, Ckey):
+        self.length = length
+        if length == 128:
+            self.KL = Ckey
+            self.KR = 0
+        elif length == 192:
+            self.KL = Ckey >> 64
+            self.KR = ((Ckey & MASK64) << 64) | (~(Ckey & MASK64))
+        else:
+            self.KL = Ckey >> 128
+            self.KR = Ckey & MASK128
+"""
+&    bitwise AND operation. --> x
+      |    bitwise OR operation. 
+      ^    bitwise exclusive-OR operation. --> 
+      <<   logical left shift operation. 
+      >>   logical right shift operation.
+      <<<  left rotation operation.
+      ~y   bitwise complement of y.
+      0x   hexadecimal representation.
+      Déjà dans pythooon !! sauf la rotation de gauche
+"""
+    def generate_KA_and_KB(self, MASK64, sigma):
+        temp1 = (self.KL ^ self.KR) >> 64
+        temp2 = (self.KL ^ self.KR) & MASK64
+        temp2 ^= f_feistel(temp1, sigma[0])
+        temp1 ^= f_feistel(temp2, sigma[1])
+        temp1 ^= (self.KL >> 64)
+        temp2 ^= (self.KL & MASK64)
+        temp2 ^= f_feistel(temp1, sigma[2])
+        temp1 ^= f_feistel(temp2, sigma[3])
+        ka = (temp1 << 64) | temp2
+        return ka
+
+    def generate_KB(self, KA, MASK64, sigma):
+        temp1 = (KA ^ self.KR) >> 64
+        temp2 = (KA ^ self.KR) & MASK64
+        temp2 ^= f_feistel(temp1, sigma[4])
+        temp1 ^= f_feistel(temp2, sigma[5])
+        kb = (temp1 << 64) | temp2
+        return kb
+
+    def generate_subkeys128(self,KA,MASK64):
+        """
+        Refaire la fonction pour chaque sous clé pour que ça soit + easy
+        :param self:
+        :param KA:
+        :param MASK64:
+        :return:
+        """
+        kw1 = self.KL >> 64
+        kw2 = self.KL & MASK64
+        k1 = KA >> 64
+        k2 = KA & MASK64
+        k3 = crypto_utils.bytes_rol(self.KL,15) >> 64
+        k4 = crypto_utils.bytes_rol(self.KL,15) & MASK64
+        k5 = crypto_utils.bytes_rol(KA,15) >> 64
+        k6 = crypto_utils.bytes_rol(KA,15) & MASK64
+        ke1 = crypto_utils.bytes_rol(KA,30) >> 64
+        ke2 = crypto_utils.bytes_rol(KA,30) & MASK64
+        k7 = crypto_utils.bytes_rol(self.KL,45) >> 64
+        k8 = crypto_utils.bytes_rol(self.KL,45) & MASK64
+        k9 = crypto_utils.bytes_rol(KA,45) >> 64
+        k10 = crypto_utils.bytes_rol(self.KL,60) & MASK64
+        k11 = crypto_utils.bytes_rol(KA,60) >> 64
+        k12 = crypto_utils.bytes_rol(KA,60) & MASK64
+        ke3 = crypto_utils.bytes_rol(self.KL,77) >> 64
+        ke4 = crypto_utils.bytes_rol(self.KL,77) & MASK64
+        k13 = crypto_utils.bytes_rol(self.KL,94) >> 64
+        k14 = crypto_utils.bytes_rol(self.KL,94) & MASK64
+        k15 = crypto_utils.bytes_rol(KA,94) >> 64
+        k16 = crypto_utils.bytes_rol(KA,94) & MASK64
+        k17 = crypto_utils.bytes_rol(self.KL,111) >> 64
+        k18 = crypto_utils.bytes_rol(self.KL,111) & MASK64
+        kw3 = crypto_utils.bytes_rol(KA,111) >> 64
+        kw4 = crypto_utils.bytes_rol(KA,111) & MASK64
+        return kw1,kw2,k1,k2,k3,k4,k5,k6,ke1,ke2,k7,k8,k9,k10,k11,k12,ke3,ke4,k13,k14,k15,k16,k17,k18,kw3,kw4
+
+
+def camellia_left(xl, xr, kl, kr):
+
+    return
+
+def camelliaèright
