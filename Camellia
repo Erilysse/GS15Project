@@ -1,4 +1,4 @@
-import crypto_utils
+import crypto_utils as cu
 
 """
 Camellia key has to be 128 bits.
@@ -44,70 +44,115 @@ class CamelliaKey(object):
       0x   hexadecimal representation.
       Déjà dans pythooon !! sauf la rotation de gauche
 """
-    def generate_KA_and_KB(self, MASK64, sigma):
+    def generate_KA(self):
         temp1 = (self.KL ^ self.KR) >> 64
         temp2 = (self.KL ^ self.KR) & MASK64
-        temp2 ^= f_feistel(temp1, sigma[0])
-        temp1 ^= f_feistel(temp2, sigma[1])
+        temp2 ^= f_function(temp1, sigma[0])
+        temp1 ^= f_function(temp2, sigma[1])
         temp1 ^= (self.KL >> 64)
         temp2 ^= (self.KL & MASK64)
-        temp2 ^= f_feistel(temp1, sigma[2])
-        temp1 ^= f_feistel(temp2, sigma[3])
+        temp2 ^= f_function(temp1, sigma[2])
+        temp1 ^= f_function(temp2, sigma[3])
         ka = (temp1 << 64) | temp2
         return ka
 
-    def generate_KB(self, KA, MASK64, sigma):
-        temp1 = (KA ^ self.KR) >> 64
-        temp2 = (KA ^ self.KR) & MASK64
-        temp2 ^= f_feistel(temp1, sigma[4])
-        temp1 ^= f_feistel(temp2, sigma[5])
+    def generate_KB(self, ka):
+        temp1 = (ka ^ self.KR) >> 64
+        temp2 = (ka ^ self.KR) & MASK64
+        temp2 ^= f_function(temp1, sigma[4])
+        temp1 ^= f_function(temp2, sigma[5])
         kb = (temp1 << 64) | temp2
         return kb
 
-    def generate_subkeys128(self,KA,MASK64):
-        """
-        Refaire la fonction pour chaque sous clé pour que ça soit + easy
-        :param self:
-        :param KA:
-        :param MASK64:
-        :return:
-        """
+    def generate_subkeys(self, ka):
+        k1 = ka >> 64
+        k2 = ka & MASK64
+        k3 = cu.bytes_rol(self.KL, 15) >> 64
+        k4 = cu.bytes_rol(self.KL, 15) & MASK64
+        k5 = cu.bytes_rol(ka, 15) >> 64
+        k6 = cu.bytes_rol(ka, 15) & MASK64
+        k7 = cu.bytes_rol(self.KL, 45) >> 64
+        k8 = cu.bytes_rol(self.KL, 45) & MASK64
+        k9 = cu.bytes_rol(ka, 45) >> 64
+        k10 = cu.bytes_rol(self.KL, 60) & MASK64
+        k11 = cu.bytes_rol(ka, 60) >> 64
+        k12 = cu.bytes_rol(ka, 60) & MASK64
+        k13 = cu.bytes_rol(self.KL, 94) >> 64
+        k14 = cu.bytes_rol(self.KL, 94) & MASK64
+        k15 = cu.bytes_rol(ka, 94) >> 64
+        k16 = cu.bytes_rol(ka, 94) & MASK64
+        k17 = cu.bytes_rol(self.KL, 111) >> 64
+        k18 = cu.bytes_rol(self.KL, 111) & MASK64
+        subk = [k1,k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13,k14,k15,k16,k17,k18]
+        return subk
+
+    def generate_subkw(self, ka):
         kw1 = self.KL >> 64
         kw2 = self.KL & MASK64
-        k1 = KA >> 64
-        k2 = KA & MASK64
-        k3 = crypto_utils.bytes_rol(self.KL,15) >> 64
-        k4 = crypto_utils.bytes_rol(self.KL,15) & MASK64
-        k5 = crypto_utils.bytes_rol(KA,15) >> 64
-        k6 = crypto_utils.bytes_rol(KA,15) & MASK64
-        ke1 = crypto_utils.bytes_rol(KA,30) >> 64
-        ke2 = crypto_utils.bytes_rol(KA,30) & MASK64
-        k7 = crypto_utils.bytes_rol(self.KL,45) >> 64
-        k8 = crypto_utils.bytes_rol(self.KL,45) & MASK64
-        k9 = crypto_utils.bytes_rol(KA,45) >> 64
-        k10 = crypto_utils.bytes_rol(self.KL,60) & MASK64
-        k11 = crypto_utils.bytes_rol(KA,60) >> 64
-        k12 = crypto_utils.bytes_rol(KA,60) & MASK64
-        ke3 = crypto_utils.bytes_rol(self.KL,77) >> 64
-        ke4 = crypto_utils.bytes_rol(self.KL,77) & MASK64
-        k13 = crypto_utils.bytes_rol(self.KL,94) >> 64
-        k14 = crypto_utils.bytes_rol(self.KL,94) & MASK64
-        k15 = crypto_utils.bytes_rol(KA,94) >> 64
-        k16 = crypto_utils.bytes_rol(KA,94) & MASK64
-        k17 = crypto_utils.bytes_rol(self.KL,111) >> 64
-        k18 = crypto_utils.bytes_rol(self.KL,111) & MASK64
-        kw3 = crypto_utils.bytes_rol(KA,111) >> 64
-        kw4 = crypto_utils.bytes_rol(KA,111) & MASK64
-        return kw1,kw2,k1,k2,k3,k4,k5,k6,ke1,ke2,k7,k8,k9,k10,k11,k12,ke3,ke4,k13,k14,k15,k16,k17,k18,kw3,kw4
+        kw3 = cu.bytes_rol(ka, 111) >> 64
+        kw4 = cu.bytes_rol(ka, 111) & MASK64
+        subkweys = [kw1,kw2, kw3, kw4]
+        return subkweys
 
-def dividemessage128(message, MASK64):
-    subml = message >> 64
-    submr = message & MASK64
-    return subml, submr
+    def generate_subke(self, ka)
+        ke1 = cu.bytes_rol(ka, 30) >> 64
+        ke2 = cu.bytes_rol(ka, 30) & MASK64
+        ke3 = cu.bytes_rol(self.KL,77) >> 64
+        ke4 = cu.bytes_rol(self.KL,77) & MASK64
+        subke = [ke1,ke2,ke3,ke4]
+        return subke
 
-def encryption128(subml, submr, kw1, kw2):
-    "Prewhitening
-    temp1 = subml ^ kw1
+def divide_text_128(message):
+    mleft = message >> 64
+    mright = message & MASK64
+    subtext = [mleft, mright]
+    return subtext
+
+def feistel(subtext, subkw, subk, subke):
+    # Prewhitening
+    temp1 = subtext[0] ^ subkw[0]
+    temp2 = subtext[1] ^ subkw[1]
+    # begin of first 6-round feistel
+    temp2 ^= f_function(temp1, subk[0])
+    temp1 ^= f_function(temp2, subk[1])
+    temp2 ^= f_function(temp1, subk[2])
+    temp1 ^= f_function(temp2, subk[3])
+    temp2 ^= f_function(temp1, subk[4])
+    temp1 ^= f_function(temp2, subk[5])
+    # insertion of fl and flinv functions with ke1 and ke2
+    temp1 = fl_function(temp1, subke[0])
+    temp2 = flinv_function(temp2, subke[1])
+    # continue with another 6-round feistel
+    temp2 ^= f_function(temp1, subk[6])
+    temp1 ^= f_function(temp2, subk[7])
+    temp2 ^= f_function(temp1, subk[8])
+    temp1 ^= f_function(temp2, subk[9])
+    temp2 ^= f_function(temp1, subk[10])
+    temp1 ^= f_function(temp2, subk[11])
+    # new insertion of fl and flinv functions with ke3 and ke4
+    temp1 = fl_function(temp1, subke[2])
+    temp2 = flinv_function(temp2, subke[3])
+    # last 6-round feistel for key 128bits
+    temp2 ^= f_function(temp1, subk[12])
+    temp1 ^= f_function(temp2, subk[13])
+    temp2 ^= f_function(temp1, subk[14])
+    temp1 ^= f_function(temp2, subk[15])
+    temp2 ^= f_function(temp1, subk[16])
+    temp1 ^= f_function(temp2, subk[17])
+    # postwhitening
+    d1forcipher = temp2 ^ subkw[2]
+    d2forcipher = temp1 ^ subkw[3]
+    return d1forcipher,d2forcipher
+
+def round6feistel(temp1, temp2, subk,firstknb):
+    temp2 ^= f_function(temp1, subk[firstknb])
+    temp1 ^= f_function(temp2, subk[firstknb+1])
+    temp2 ^= f_function(temp1, subk[firstknb+2])
+    temp1 ^= f_function(temp2, subk[firstknb+3])
+    temp2 ^= f_function(temp1, subk[firstknb+4])
+    temp1 ^= f_function(temp2, subk[firstknb+5])
+    tab = [temp1, temp2]
+    return tab
 
 def f_function():
 
@@ -115,4 +160,30 @@ def fl_function():
 
 def flinv_function():
 
-def decryption
+
+def encryption128(message, key):
+    subtext = divide_text_128(message)
+    subk = key.generate_subkeys(key.generate_ka())
+    subkw = generate_subkw(key.generate_ka())
+    subke = generate_subke(key.generate_ka())
+    dataforcypher = feistel(subtext, subkw, subk, subke)
+    # construction of the ciphertext 128 bits from temp1 and temp2
+    ciphertext = (dataforcypher[0] << 64) | dataforcypher[1]
+    return ciphertext
+
+def inverse_subkwhite(subkw)
+    invsubkw = [subkw[2], subkw[3], subkw[0], subkw[1]]
+    return invsubkw
+
+def inverse_subkeys(subk)
+    subk.reverse()
+    return subk
+
+def decryption128(ciphertext, MASK64, subkw, subk, subke)
+    subcipher = divide_text_128(ciphertext, MASK64)
+    invsubkw = inverse_subkwhite(subkw)
+    invsubk = inverse_subkeys(subk)
+    invsubke = inverse_subkeys(subke)
+    datafordecipher = feistel(subcipher,invsubkw, invsubk, invsubke)
+    plaintext = (datafordecipher[0] << 64) | datafordecipher[1]
+    return plaintext
