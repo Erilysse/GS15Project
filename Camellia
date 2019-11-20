@@ -100,9 +100,19 @@ class CamelliaKey(object):
         kw4 = crypto_utils.bytes_rol(KA,111) & MASK64
         return kw1,kw2,k1,k2,k3,k4,k5,k6,ke1,ke2,k7,k8,k9,k10,k11,k12,ke3,ke4,k13,k14,k15,k16,k17,k18,kw3,kw4
 
+def dividemessage128(message, MASK64):
+    subml = message >> 64
+    submr = message & MASK64
+    return subml, submr
 
-def camellia_left(xl, xr, kl, kr):
+def encryption128(subml, submr, kw1, kw2):
+    "Prewhitening
+    temp1 = subml ^ kw1
 
-    return
+def f_function():
 
-def camelliaèright
+def fl_function():
+
+def flinv_function():
+
+def decryption
