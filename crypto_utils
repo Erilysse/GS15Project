@@ -333,7 +333,7 @@ def bytesToString(byt):
 # ===========================================
 
 """
-    Convertion utils
+    Conversion utils
 """
 
 
@@ -433,28 +433,27 @@ Block cipher mode
 """
 
 
-def ECB(function, file_in, file_out, chunk_size, key, init_vector=0):
+def ECB(function, file_in, file_out, chunk_size, key):
     """
-    @brief      Mode ECB: chiffre/dechiffre le fichier avec la fonction de
-                chiffrement et la clé passé en paramettre dans un autre fichier
+    @brief      Mode ECB: chiffre/déchiffre le fichier avec la fonction de
+                chiffrement et la clé passée en paramètre dans un autre fichier
 
     @param      function    La fonction de chiffrement
-    @param      file_in     Le fichier d'entré
-    @param      file_out    Le fichier de sortie
-    @param      chunk_size  La taille du bloc
+    @param      file_in     L'adresse du fichier d'entrée
+    @param      file_out    l'adresse du fichier de sortie
+    @param      chunk_size  La taille du bloc en bytes
     @param      key         La clé en bytes
 
     """
     if not isinstance(key, bytes):
         raise TypeError("key must be set to bytes")
     with open(file_in, 'rb') as f:
-        s = open(file_out, 'wb')
+        s = open(file_out, 'wb+')
         for chunk in iter(lambda: f.read(chunk_size), b''):
             if len(chunk) != chunk_size:
                 chunk += bytes(chunk_size - len(chunk))
             s.write(function(chunk, key))
         s.close()
-
 
 class CBC(object):
     """Classe pour le mode CBC"""
@@ -463,13 +462,13 @@ class CBC(object):
     def cipher(function, file_in, file_out, chunk_size, key, init_vector):
         """
         @brief      Mode CBC chiffrement: chiffre le fichier avec la fonction de
-                    chiffrement, la clé et le vectoeur initiale passé en
-                    paramettre dans un autre fichier
+                    chiffrement, la clé et le vecteur initial passé en
+                    paramètre dans un autre fichier
 
         @param      function    La fonction de chiffrement
-        @param      file_in     Le fichier d'entré
-        @param      file_out    Le fichier de sortie
-        @param      chunk_size  La taille du bloc
+        @param      file_in     L'adresse du fichier d'entrée
+        @param      file_out    L'adresse du fichier de sortie
+        @param      chunk_size  La taille du bloc en bytes
         @param      key         La clé en bytes
         @param      init_vector  Le vecteur initial
 
@@ -482,7 +481,7 @@ class CBC(object):
             raise ValueError("init_vector must be the same size of the chunk size")
 
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb')
+            s = open(file_out, 'wb+')
             last_bytes = init_vector
             for chunk in iter(lambda: f.read(chunk_size), b''):
                 if len(chunk) != chunk_size:
@@ -496,13 +495,13 @@ class CBC(object):
     def decipher(function, file_in, file_out, chunk_size, key, init_vector):
         """
         @brief      Mode CBC déchiffrement: déchiffre le fichier avec la fonction de
-                    chiffrement, la clé et le vectoeur initiale passé en
-                    paramettre dans un autre fichier
+                    chiffrement, la clé et le vecteur initial passé en
+                    paramètre dans un autre fichier
 
         @param      function    La fonction de chiffrement
-        @param      file_in     Le fichier d'entré
-        @param      file_out    Le fichier de sortie
-        @param      chunk_size  La taille du bloc
+        @param      file_in     L'adresse du fichier d'entrée
+        @param      file_out    L'adresse du fichier de sortie
+        @param      chunk_size  La taille du bloc en bytes
         @param      key         La clé en bytes
         @param      init_vector  Le vecteur initial
 
@@ -515,7 +514,7 @@ class CBC(object):
             raise ValueError("init_vector must be the same size of the chunk size")
 
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb')
+            s = open(file_out, 'wb+')
             last_chunk = init_vector
             for chunk in iter(lambda: f.read(chunk_size), b''):
                 if len(chunk) != chunk_size:
@@ -533,11 +532,11 @@ class PCBC(object):
     def cipher(function, file_in, file_out, chunk_size, key, init_vector):
         """
         @brief      Mode PCBC chiffrement: chiffre le fichier avec la fonction
-                    de chiffrement, la clé et le vectoeur initiale passé en
-                    paramettre dans un autre fichier
+                    de chiffrement, la clé et le vecteur initial passé en
+                    paramètre dans un autre fichier
 
         @param      function     La fonction de chiffrement
-        @param      file_in      Le fichier d'entré
+        @param      file_in      Le fichier d'entrée
         @param      file_out     Le fichier de sortie
         @param      chunk_size   La taille du bloc
         @param      key          La clé en bytes
@@ -552,7 +551,7 @@ class PCBC(object):
             raise ValueError("init_vector must be the same size of the chunk size")
 
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb')
+            s = open(file_out, 'wb+')
             last_bytes = init_vector
             for chunk in iter(lambda: f.read(chunk_size), b''):
                 if len(chunk) != chunk_size:
@@ -567,8 +566,8 @@ class PCBC(object):
     def decipher(function, file_in, file_out, chunk_size, key, init_vector):
         """
         @brief      Mode PCBC déchiffrement: déchiffre le fichier avec la
-                    fonction de chiffrement, la clé et le vectoeur initiale
-                    passé en paramettre dans un autre fichier
+                    fonction de chiffrement, la clé et le vecteur initial
+                    passé en paramètre dans un autre fichier
 
         @param      function     La fonction de chiffrement
         @param      file_in      Le fichier d'entré
@@ -586,7 +585,7 @@ class PCBC(object):
             raise ValueError("init_vector must be the same size of the chunk size")
 
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb')
+            s = open(file_out, 'wb+')
             last_chunk = init_vector
             for chunk in iter(lambda: f.read(chunk_size), b''):
                 if len(chunk) != chunk_size:
@@ -612,3 +611,9 @@ def read_yaml(file):
 def write_yaml(data, file):
     with open(file, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+
+# Generate a vector
+
+def genVector(length):
+
+    return vector

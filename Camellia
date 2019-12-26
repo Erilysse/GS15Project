@@ -25,13 +25,16 @@ sigma =[
     0xB05688C2B3E6C1FD
 ]
 """
-    Class CamelliaKey. Represents the key scheduling part.
+    Class CamelliaKey.
+    Represents the key scheduling part.
 """
 class CamelliaKey(object):
     """
-    init initialize the object.
-    Inputs: length of the key, camellia key
-    task: We divide the ckey as 2 blocks KL (key left) and KR (key right) which depends of the length of the key.
+    In this function, we initialize the object
+    @:param  length     length of the key
+    @:param  ckey       camellia private key
+
+    @:var   KL (key left block) and KR (key right block)
     """
     def __init__(self, length, ckey):
         self.length = length
@@ -39,7 +42,7 @@ class CamelliaKey(object):
             self.KL = ckey
             self.KR = 0
         elif length == 192:
-            self.KL = Ckey >> 64
+            self.KL = ckey >> 64
             self.KR = ((ckey & MASK64) << 64) | (~(ckey & MASK64))
         else:
             self.KL = ckey >> 128
@@ -57,7 +60,8 @@ class CamelliaKey(object):
         ka = (temp1 << 64) | temp2
         return ka
 
-    def generate_kb(self, ka):
+    def generate_kb(self):
+        ka = generate_ka(self)
         temp1 = (ka ^ self.KR) >> 64
         temp2 = (ka ^ self.KR) & MASK64
         temp2 ^= f_function(temp1, sigma[4])
@@ -65,7 +69,9 @@ class CamelliaKey(object):
         kb = (temp1 << 64) | temp2
         return kb
 
-    def generate_subkeys_128(self, ka, kb):
+    def generate_subkeys(self):
+        ka = generate_ka()
+        kb = generate_kb()
         if self.length == 128:
             k1 = ka >> 64
             k2 = ka & MASK64
@@ -115,13 +121,16 @@ class CamelliaKey(object):
             subk = [k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21,
                     k22, k23, k24]
             return subk
-
     """
         Generate_subkw aims to generate all the subkeys kw1, kw2, kw3 and kw4.
-        inputs : camelliakey and k, which is ka in case of lengthkey=128, and kb is lengthkey=192,256 bits
+        @param  camelliakey 
     """
 
-    def generate_subkw(self, k):
+    def generate_subkw(self):
+        if self.length==128:
+            k= generate_ka()
+        else:
+            k= generate_kb()
         kw1 = self.KL >> 64
         kw2 = self.KL & MASK64
         kw3 = cu.bytes_rol(k, 111) >> 64
@@ -129,7 +138,14 @@ class CamelliaKey(object):
         subkweys = [kw1, kw2, kw3, kw4]
         return subkweys
 
-    def generate_subke_128(self, ka):
+    """
+        Generate_subke aims to generate all the subkeys ke1, ke2, ke3, etc...
+        @:param     camelliakey
+        @:param     ka
+        @:return    generate different subkeys // the length of the key
+    """
+    def generate_subke(self):
+        ka = generate_ka()
         if self.length == 128:
             ke1 = cu.bytes_rol(ka, 30) >> 64
             ke2 = cu.bytes_rol(ka, 30) & MASK64
@@ -147,16 +163,54 @@ class CamelliaKey(object):
             subke = [ke1, ke2, ke3, ke4, ke5, ke6]
             return subke
 
-
-def divide_text_128(message):
+"""
+    Divide a 128 bits message in two parts
+"""
+def divide_message(message):
     mleft = message >> 64
     mright = message & MASK64
     subtext = [mleft, mright]
     return subtext
 
+def inverse_subkweys(subkw):
+    invsubkw = [subkw[2], subkw[3], subkw[0], subkw[1]]
+    return invsubkw
 
-def feistel(subtext, subkw, subk, subke):
-    # Prewhitening
+def inverse_subkeys(subk):
+    subk.reverse()
+    return subk
+
+def inverse_subke (subke):
+    subke.reverse()
+    return subkwe
+
+"""
+    Encryption of a 128 bits message with camellia algorithm
+"""
+def encryption(message, camellia_key):
+    subtext = divide_message(message)
+    subk = camellia_key.generate_subkeys()
+    subkw = camellia_key.generate_subkw()
+    subke = camellia_key.generate_subke()
+    data_for_cypher = feistel(subtext, subkw, subk, subke)
+    # construction of the ciphertext  from temp1 and temp2
+    ciphertext = (data_for_cypher[1] << 64) | data_for_cypher[0]
+    return ciphertext
+
+"""
+    Decryption of a 128 bits cipher with camellia key
+"""
+def decryption(camellia_cipher, camellia_key):
+    cipher = divide_message(camellia_cipher)
+    invsubk = inverse_subkeys(camellia_key.generate_subkeys())
+    invsubkw = inverse_subkwhite(camellia_key.generate_subkw())
+    invsubke = inverse_subkeys(camellia_key.generate_subke())
+    datafordecipher = feistel(cipher,invsubkw, invsubk, invsubke, camellia_key)
+    plaintext = (datafordecipher[0] << 64) | datafordecipher[1]
+    return plaintext
+
+def feistel(subtext, subkw, subk, subke, camellia_key):
+    # Prewhitening of the left part and right part of the message
     temp1 = subtext[0] ^ subkw[0]
     temp2 = subtext[1] ^ subkw[1]
     # begin of first 6-round feistel
@@ -186,7 +240,7 @@ def feistel(subtext, subkw, subk, subke):
     temp1 ^= f_function(temp2, subk[15])
     temp2 ^= f_function(temp1, subk[16])
     temp1 ^= f_function(temp2, subk[17])
-    if self.length != 128:
+    if camellia_key.length != 128:
         temp1 = fl_function(temp1, subke[4])
         temp2 = flinv_function(temp2, subke[5])
         temp2 ^= f_function(temp1, subk[18])
@@ -200,6 +254,15 @@ def feistel(subtext, subkw, subk, subke):
     d1cipher = temp1 ^ subkw[3]
     return [d1cipher, d2cipher]
 
+"""
+    round6feistel generalize the six round in feistel with the f_function and the subkeys
+    @:param     temp1    temporary var
+    @:param     temp2    temporary var
+    @:param     subk     table of the subkeys used in this feistel's round
+    @:param     firstknb number of the first subkey used in feistel's round
+    
+    @:return    tab      table of modified temp1 and temp2
+"""
 def round6feistel(temp1, temp2, subk,firstknb):
     temp2 ^= f_function(temp1, subk[firstknb])
     temp1 ^= f_function(temp2, subk[firstknb+1])
@@ -210,6 +273,15 @@ def round6feistel(temp1, temp2, subk,firstknb):
     tab = [temp1, temp2]
     return tab
 
+"""
+    f_function
+    @:param     inputdata
+    @:param     subkey
+    
+    @:var       SBOX1[], SBOX2[], SBOX3[], SBOX4[]
+    
+    @:return    fout
+"""
 def f_function(inputdata, subkey):
     x = inputdata ^ subkey
     t1 = x >> 56
@@ -240,13 +312,13 @@ def f_function(inputdata, subkey):
     return fout
 
 """
-    Fl_function takes two parameters :
-    - inputdata (64-bit)
-    - subkey (64-bit)
-    return: 
-    - data flout (64-bit)
-    use of variables :
-    x1, x2, k1, k2 (32-bit unsigned integer)
+    fl_function takes two parameters :
+    @:param     inputdata (64-bit)
+    @:param     subkey (64-bit)
+
+    @:var       x1, x2, k1, k2 (32-bit unsigned integer)
+
+    @:return    data flout (64-bit)
 """
 def fl_function(inputdata, subkey):
     x1 = inputdata >> 32
@@ -258,14 +330,13 @@ def fl_function(inputdata, subkey):
     flout = (x1 << 32) | x2
     return flout
 """
-    Flinv_function si the inverse function of the FL_function
-    Flinv_function takes two parameters :
-    - inputdata (64-bit)
-    - subkey (64-bit)
-    return: 
-    - data flout (64-bit)
-    use of variables :
-    y1, y2, k1, k2 (32-bit unsigned integer)   
+    flinv_function is the inverse function of the FL_function
+    @:param     inputdata (64-bit)
+    @:param     subkey (64-bit)
+
+    @:var       y1, y2, k1, k2 (32-bit unsigned integer)
+
+    @:return    data flout (64-bit)
 """
 def flinv_function(inputdata, subkey):
     y1 = inputdata >> 32
@@ -277,38 +348,3 @@ def flinv_function(inputdata, subkey):
     flinvout = (y1 << 32) | y2
     return flinvout
 
-def encryption128(message, key):
-    subtext = divide_text_128(message)
-    subk = key.generate_subkeys(key, key.generate_ka())
-    subkw = key.generate_subkw(key, key.generate_ka())
-    subke = key.generate_subke(key, key.generate_ka())
-    dataforcypher = feistel(subtext, subkw, subk, subke)
-    # construction of the ciphertext 128 bits from temp1 and temp2
-    ciphertext = (dataforcypher[1] << 64) | dataforcypher[0]
-    return ciphertext
-
-def inverse_subkweys(subkw):
-    invsubkw = [subkw[2], subkw[3], subkw[0], subkw[1]]
-    return invsubkw
-
-def inverse_subkeys(subk):
-    subk.reverse()
-    return subk
-
-def inverse_subke (subke):
-    subke.reverse()
-    return subkwe
-
-def decryption128(ciphertext, subkw, subk, subke):
-    subcipher = divide_text_128(ciphertext)
-    invsubkw = inverse_subkwhite(subkw)
-    invsubk = inverse_subkeys(subk)
-    invsubke = inverse_subkeys(subke)
-    datafordecipher = feistel(subcipher,invsubkw, invsubk, invsubke)
-    plaintext = (datafordecipher[0] << 64) | datafordecipher[1]
-    return plaintext
-
-"""
-    CamelliaCBCParameter ::= CamelliaIV  --  Initialization Vector
-    CamelliaIV ::= OCTET STRING (SIZE(16))
-"""
