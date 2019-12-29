@@ -1,6 +1,4 @@
-import crypto_utils as cu
-import math
-""" 
+"""
 besoin de : fonction de hash (MD5, Whirlpool, SHA-256
 
 fonction éponge
