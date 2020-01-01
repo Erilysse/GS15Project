@@ -6,6 +6,8 @@ import re
 from math import sqrt
 from secrets import randbits
 
+RMCheck = 128  # verif number with Rabin Miller
+
 
 def get_depth():
     """
@@ -232,10 +234,64 @@ def getPrime(nb_bytes):
     while not isPrime:
         number = randbits(nb_bytes)
         number = (number & ~1) | 1  # passe le LSB a 1 pour eviter les nombres pair
-        if is_prime(number):
+        if rabinMiller(number) and isStrongPrime(number):
             isPrime = True
-            print("prime found ", number)  # print de debug
-    return number  # retourne le nombre premier
+    return number  # return a prime number
+
+
+def rabinMiller(number):
+    """
+    @brief                  Rabin-Miller prime test
+    @:param     number      The number we want to test the primality with Rabin-Miller algorithm
+    @:return    boolean     True if the Rabin-Miller test reveals the primality
+    """
+    # if the number is even and not prime : too little numbers cause many problems
+    if number % 2 == 0 or number < 10:
+        return False
+    s = 0
+    r = number - 1
+
+    while r & 1 == 0:  # while it's even => divide to resolve n-1 = 2**s * r
+        s += 1
+        r //= 2
+
+    for _ in range(RMCheck):  # loop to obtain the iterations wanted
+        a = random.randrange(2, number - 1)
+        x = pow(a, r, number)
+        if x != 1 and x != number - 1:
+            j = 1
+            while j < s and x != number - 1:
+                x = pow(x, 2, number)
+                if x == 1:
+                    return False
+                j += 1
+            if x != number - 1:
+                return False
+    return True  # if it's not indicated as non-prime, maybe it's because number is prime
+
+
+def isStrongPrime(number):
+    """
+    @brief                  The prime number has to be greater than its 2 nearer numbers' mean
+    @:param     number      The number we want to know if it's prime
+    @:return    boolean     True if it's prime and False if it's not prime
+    """
+    # initialize previous_prime to n - 1 and next_prime to n + 1
+    previous_prime = number - 1
+    next_prime = number + 1
+    # Find next prime number
+    while not rabinMiller(next_prime):
+        next_prime += 1
+    # Find previous prime number
+    while not rabinMiller(previous_prime):
+        previous_prime -= 1
+    # Arithmetic mean
+    mean = (previous_prime + next_prime) / 2
+    # If n is a strong prime
+    if number > mean:
+        return True
+    else:
+        return False
 
 
 def genKey(nb_bytes, print_num=True, i=1):

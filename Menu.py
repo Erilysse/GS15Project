@@ -6,7 +6,7 @@ import crypto_utils as cu
 # from lib import hash
 
 primeNumber_Size = 512  # size / quantity of bits to generate the prime number
-RMCheck = 128  # verif number with Rabin Miller
+
 os.chdir("tests")
 
 """
@@ -51,7 +51,6 @@ def generate_key_pairs():
     privateKeyFile.write("U=" + str(U) + "\n")
     privateKeyFile.write("N=" + str(N))
     privateKeyFile.close()
-
 
 
 # certificateur signe avec sa clé privé la clé publique du site (s priv c(pub s))
