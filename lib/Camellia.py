@@ -18,14 +18,20 @@ MASK8 = 0xff
 MASK32 = 0xffffffff
 MASK64 = 0xffffffffffffffff
 MASK128 = 0xffffffffffffffffffffffffffffffff
-sigma = [
-    0xA09E667F3BCC908B,
-    0xB67AE8584CAA73B2,
-    0xC6EF372FE94F82BE,
-    0x54FF53A5F1D36F1C,
-    0x10E527FADE682D1D,
-    0xB05688C2B3E6C1FD
-]
+
+#RFC 3713 : we will use the key bellow in the F_function.
+sigma_1 = 0xA09E667F3BCC908B
+sigma_2 = 0xB67AE8584CAA73B2
+sigma_3 = 0xC6EF372FE94F82BE
+sigma_4 = 0x54FF53A5F1D36F1C
+sigma_5 = 0x10E527FADE682D1D
+sigma_6 = 0xB05688C2B3E6C1FD
+
+k=0
+global ka
+global kb
+
+
 """
     Class CamelliaKey.
     Represents the key scheduling part.
@@ -63,12 +69,12 @@ class CamelliaKey(object):
     def generate_ka(self):
         temp1 = (self.KL ^ self.KR) >> 64
         temp2 = (self.KL ^ self.KR) & MASK64
-        temp2 ^= f_function(temp1, sigma[0])
-        temp1 ^= f_function(temp2, sigma[1])
+        temp2 ^= f_function(temp1, sigma_1)
+        temp1 ^= f_function(temp2, sigma_2)
         temp1 ^= (self.KL >> 64)
         temp2 ^= (self.KL & MASK64)
-        temp2 ^= f_function(temp1, sigma[2])
-        temp1 ^= f_function(temp2, sigma[3])
+        temp2 ^= f_function(temp1, sigma_3)
+        temp1 ^= f_function(temp2, sigma_4)
         ka = (temp1 << 64) | temp2
         return ka
     """
@@ -79,8 +85,8 @@ class CamelliaKey(object):
         ka = self.generate_ka()
         temp1 = (ka ^ self.KR) >> 64
         temp2 = (ka ^ self.KR) & MASK64
-        temp2 ^= f_function(temp1, sigma[4])
-        temp1 ^= f_function(temp2, sigma[5])
+        temp2 ^= f_function(temp1, sigma_5)
+        temp1 ^= f_function(temp2, sigma_6)
         kb = (temp1 << 64) | temp2
         return kb
 
@@ -187,8 +193,6 @@ class CamelliaKey(object):
 """
     Divide a 128 bits message in two parts
 """
-
-
 def divide_message(message):
     mleft = message >> 64
     mright = message & MASK64
@@ -208,8 +212,6 @@ def inverse_subkweys(subkw):
     @:param chunk           a chunk of the message
     @:param camellia_key    Camellia Key object
 """
-
-
 def encryption(chunk, camellia_key):
     subtext = divide_message(chunk)
     subk = camellia_key.generate_subkeys()
@@ -226,8 +228,6 @@ def encryption(chunk, camellia_key):
     @:param chunk_cipher    a chunk of the cipher message
     @:param camellia_key    Camellia Key object
 """
-
-
 def decryption(chunk_cipher, camellia_key):
     subtext_cipher = divide_message(chunk_cipher)
     invsubkw = inverse_subkweys(camellia_key.generate_subkw())
@@ -239,14 +239,16 @@ def decryption(chunk_cipher, camellia_key):
 
 
 """
+    CamelliaEncryption permit to encrypt with a 128-bit key
+    We divided the plaintext into 2 plaintext : a left 64-bit KL and a right 64-bit KR 
+    We use a 18-rounds Feistel structure with FL and FLINV functions inserted every 6 rounds.  
+
     @:param subtext         string chunk of the message
     @:param subkw           string subkweys
     @:param subk            string subkeys
     @:param subke           string subkeeys
     @:param camellia_key    Camellia Key object
 """
-
-
 def feistel(subtext, subkw, subk, subke, camellia_key):
     # Prewhitening of the left part and right part of the message
     temp1 = subtext[0] ^ subkw[0]
@@ -314,7 +316,6 @@ def round6feistel(temp1, temp2, subk, firstknb):
     tab = [temp1, temp2]
     return tab
 
-
 """
     f_function
     @:param     inputdata
@@ -336,22 +337,22 @@ def f_function(inputdata, subkey):
     t6 = (x >> 16) & MASK8
     t7 = (x >> 8) & MASK8
     t8 = x & MASK8
-    t1 = SBOX1[t1]
-    t2 = SBOX2[t2]
-    t3 = SBOX3[t3]
-    t4 = SBOX4[t4]
-    t5 = SBOX2[t5]
-    t6 = SBOX3[t6]
-    t7 = SBOX4[t7]
-    t8 = SBOX1[t8]
-    y1 = t1 ^ t3 ^ t4 ^ t6 ^ t7 ^ t8
-    y2 = t1 ^ t2 ^ t4 ^ t5 ^ t7 ^ t8
-    y3 = t1 ^ t2 ^ t3 ^ t5 ^ t6 ^ t8
-    y4 = t2 ^ t3 ^ t4 ^ t5 ^ t6 ^ t7
-    y5 = t1 ^ t2 ^ t6 ^ t7 ^ t8
-    y6 = t2 ^ t3 ^ t5 ^ t7 ^ t8
-    y7 = t3 ^ t4 ^ t5 ^ t6 ^ t8
-    y8 = t1 ^ t4 ^ t5 ^ t6 ^ t7
+    SBOX1_t1 = t1 ^ x**6 & x**4 & x**3 & x
+    SBOX2_t2 = t2**(-1)
+    SBOX3_t3 = t3 & x**7 & x**6 & x**5 & x**4 & x**3 & x**2 & x & 1
+    SBOX4_t4 = (t4 & x**6 & x**4 & x**2 & 1) ^ x**7 & x**5 & x**3 & x
+    SBOX2_t5 = t5 ^ x**5 & x**2 & 1
+    SBOX3_t6 = (t6 ^ x**3 & x**3 & x**2 & x & 1) **(-1)
+    SBOX4_t7 = t7 ^ x**7 & x**6 & x**5 & x**4 & x**3 & x**2 & x & 1
+    SBOX1_t8 = (t8 ^ x**7 & x**5 & x**3 & x) ^ x**6 & x**4 & x**2 & 1
+    y1 = SBOX1_t1 ^ SBOX3_t3 ^ SBOX4_t4 ^ SBOX3_t6 ^ SBOX4_t7 ^ SBOX1_t8
+    y2 = SBOX1_t1 ^ SBOX2_t2 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX4_t7 ^ SBOX1_t8
+    y3 = SBOX1_t1 ^ SBOX2_t2 ^ SBOX3_t3 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX1_t8
+    y4 = SBOX2_t2 ^ SBOX3_t3 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX4_t7
+    y5 = SBOX1_t1 ^ SBOX2_t2 ^ SBOX3_t6 ^ SBOX4_t7 ^ SBOX1_t8
+    y6 = SBOX2_t2 ^ SBOX3_t3 ^ SBOX2_t5 ^ SBOX4_t7 ^ SBOX1_t8
+    y7 = SBOX3_t3 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX1_t8
+    y8 = SBOX1_t1 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX4_t7
     fout = (y1 << 56) | (y2 << 48) | (y3 << 40) | (y4 << 32) | (y5 << 24) | (y6 << 16) | (y7 << 8) | y8
     return fout
 
@@ -398,3 +399,7 @@ def flinv_function(inputdata, subkey):
     y2 ^= cu.bytes_rol((y1 & k1), 1)
     flinvout = (y1 << 32) | y2
     return flinvout
+
+    
+
+

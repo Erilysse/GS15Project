@@ -4,6 +4,7 @@ import os
 import random
 import re
 from math import sqrt
+from secrets import randbits
 
 
 def get_depth():
@@ -227,16 +228,14 @@ def getPrime(nb_bytes):
     @:param     nb_bytes    Le nombre d'octet
     @:return    q           Le nombre premier
     """
-    depth = get_depth()
-    print("{}getPrime: Generate a {} bytes long prime".format(depth * "\t", nb_bytes))
-    i = 0
-    while True:
-        i += 1
-        q = bytes2int(genKey(nb_bytes, False, i))
-        if is_prime(q):
-            print('')
-            break
-    return q
+    isPrime = False
+    while not isPrime:
+        number = randbits(nb_bytes)
+        number = (number & ~1) | 1  # passe le LSB a 1 pour eviter les nombres pair
+        if is_prime(number):
+            isPrime = True
+            print("prime found ", number)  # print de debug
+    return number  # retourne le nombre premier
 
 
 def genKey(nb_bytes, print_num=True, i=1):
