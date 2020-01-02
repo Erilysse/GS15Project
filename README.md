@@ -10,7 +10,7 @@ We will encode several cryptology-related functions such as :
 - An electronic signature function
 
 
-## The Camellia Encryption
+## Camellia Encryption
 We have developed the three requested encryption modes: ECB, CBC, PCBC while trying to make them reusable for the rest of the project. 
 For the moment, we have implemented, without testing, these functions by imagining to allow the user to switch from one mode to another, to choose the input or output file names, the block size, the key ...
 
@@ -34,10 +34,10 @@ Afterwards, we will encrypt the files with this key.
 ## The electronic signature
 We decided to implement DSA (*Digital Signature Algorithm*) for electronic signature. The algorithm is open source and can be easily found on the internet. We took inspiration from these different codes to make our own. At the moment it's in development. 
 
-# Overall problem during the project
+## Overall problem during the project
 The main concern encountered during this project is the cruel lack of tools to manipulate byte sequences under Python. A lot of functions are non-existent or very badly optimized! 
 
-# How To
+## How To
 
 The structure of the project:
 
@@ -45,34 +45,17 @@ The structure of the project:
 - lib: The folder where all functions are stored.
 - tests: The folder where all text files are saved. It contains keys, signatures or certificates.
 
-## The lib files 
+###  The lib files 
 At the moment there are 5 files created. Each file can be called to test the functions associated with the file, except the crypto_utils.py file:
 
-# crypto_utils : 
-This is THE file containing supporting functions such as block cipher methods or miller-rabin test.
-
-# diffie_hellman :
-A file defining functions associated with the diffie hellman protocol. By running the functions in sequence, we simulate a communication between Alice and Bob using a diffie hellman protocol.
-
-# Signature : 
-A file defining the functions associated with the DSA signature method. By calling it, it simulates the request to sign a message with Alice's key, and the verification of it. 
+* **crypto_utils :** This is THE file containing supporting functions such as block cipher methods or miller-rabin test.
+* ** diffie_hellman :** A file defining functions associated with the diffie hellman protocol. By running the functions in sequence, we simulate a communication between Alice and Bob using a diffie hellman protocol.
+* **Signature :** A file defining the functions associated with the DSA signature method. By calling it, it simulates the request to sign a message with Alice's key, and the verification of it. 
 We call Diffie Hellman's algorithm for Alice and Bob, it's classic. In this exercise, we're working with three protagonists : 
 - A certifier, 
 - A website, 
 - A visitor. 
-The certifier has a set of keys (pub_c and priv_c). 
-The website has another set of keys (pub_s and priv_s).
-The certifier issues a certificate to the website using his private key and the public key of the website. Otherwise, he signs pub_s with priv_c.  
-The visitor wants to be reassured about the website he is visiting. He receives pub_c. He wants to verify that it is a website certified by the owner of pub_c. 
-Under development, not yet push on the Master branch. 
-
-# Camellia : 
-A file defining the functions associated with the Camellia encryption method. By calling it, we test the encryption and decryption of a block of data. It is not yet fully operational. 
-
-# Read : 
-A file testing the block encryption and decryption methods on a file
-
-# hash : 
-Should allow hashing using a sponge function. 
-We often had to transform entire blocks of bits to apply them to binary functions. 
-In our crypto_utils file, we have been busy developing several tools to handle these things. Little by little, we finally found functions under python that allow to handle integers more simply. 
+The certifier has a set of keys (pub_c and priv_c).  The website has another set of keys (pub_s and priv_s). The certifier issues a certificate to the website using his private key and the public key of the website. Otherwise, he signs pub_s with priv_c.   The visitor wants to be reassured about the website he is visiting. He receives pub_c. He wants to verify that it is a website certified by the owner of pub_c. Under development, not yet push on the Master branch. 
+* **Camellia :** A file defining the functions associated with the Camellia encryption method. By calling it, we test the encryption and decryption of a block of data. It is not yet fully operational. 
+* **Read :** A file testing the block encryption and decryption methods on a file
+* **hash :** Should allow hashing using a sponge function. We often had to transform entire blocks of bits to apply them to binary functions. In our crypto_utils file, we have been busy developing several tools to handle these things. Little by little, we finally found functions under python that allow to handle integers more simply. 
