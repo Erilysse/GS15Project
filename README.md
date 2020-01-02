@@ -35,7 +35,7 @@ Afterwards, we will encrypt the files with this key.
 We decided to implement DSA (*Digital Signature Algorithm*) for electronic signature. The algorithm is open source and can be easily found on the internet. We took inspiration from these different codes to make our own. At the moment it's in development. 
 
 # Overall problem during the project
-The main concern encountered during this project and the cruel lack of tools to manipulate byte sequences under Python. A lot of functions are non-existent or very badly optimized! 
+The main concern encountered during this project is the cruel lack of tools to manipulate byte sequences under Python. A lot of functions are non-existent or very badly optimized! 
 
 # How To
 
