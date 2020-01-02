@@ -236,6 +236,7 @@ def getPrime(nb_bytes):
         number = (number & ~1) | 1  # passe le LSB a 1 pour eviter les nombres pair
         if rabinMiller(number) and isStrongPrime(number):
             isPrime = True
+    print("NB PREMIER : ", number)
     return number  # return a prime number
 
 
@@ -294,7 +295,7 @@ def isStrongPrime(number):
         return False
 
 
-def genKey(nb_bytes, print_num=True, i=1):
+def genKey(nb_bytes, print_num, i=1):
     """
     @brief       Génère une clé aléatoire de nb_bytes octets
     @:param      nb_bytes   Le nombre d'octet
@@ -303,8 +304,9 @@ def genKey(nb_bytes, print_num=True, i=1):
     @:return     key        La clé générée en bytes
     """
     depth = get_depth()
+    verif = True
     print("{}genKey: Generate a {} bytes long random number. try {}".format(depth * "\t", nb_bytes, i), end="\r")
-    while True:
+    while verif:
         key = os.urandom(nb_bytes)
         if bytes2int(key) != 0:
             break
@@ -323,7 +325,38 @@ def genVector():
     return vector
 
 
-def Schnorr_group(nb_small, nb_big):
+# ====================================================
+# Functions for a certificate generation
+# ====================================================
+
+def create_signed_cert(pubK, privK):
+    # elements to generate the certificate
+    print("Generate the certificate for the website : \n"
+          "FR \n"
+          "France \n"
+          "Troyes \n"
+          "GS15 Project \n")
+    # Certificate generation
+    cert = crypto.X509()
+    cert.get_subject().C = "FR"
+    cert.get_subject().ST = "France"
+    cert.get_subject().L = "Troyes"
+    cert.get_subject().O = "GS15 Project"
+    cert.set_serial_number(1000)
+    cert.gmtime_adj_notBefore(0)
+    cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
+    cert.set_issuer(cert.get_subject())
+    cert.set_pubkey(pubK)
+    cert.sign(pubK, 'sha1')
+    websiteCertif = open("websiteCertificate", "wt")
+    websiteCertif.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
+    websiteCertif.close()
+    websiteKey = open("websiteKey", "wt")
+    websiteKey.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, privK))
+    websiteKey.close()
+
+
+def Schnorr_group(nb_big, nb_small):
     """
     @brief      Génére un group de Schnorr
 
@@ -334,29 +367,22 @@ def Schnorr_group(nb_small, nb_big):
     """
     depth = get_depth()
     print("{}Schnorr_group: Generate prime q".format(depth * "\t"))
-    q = getPrime(nb_small)
-
-    print("{}Schnorr_group: Generate prime p".format(depth * "\t"))
     i = 1
     # r = bytes2int(genKey(nb_big - nb_small, False, i))
-    r = bytes2int(genKey(nb_big, False, i))
-    while True:
-
-        p = r * q + 1
-        # p = r - ((r % (2*q)) - 1)
-        if is_prime(p) and p != 1:
-            print('')
+    p = bytes2int(genKey(nb_big, False, i))
+    verif = True
+    while verif:
+        q = 2*p - 1
+        if is_prime(q) and q != 1:
             break
         else:
             i += 1
-            r = bytes2int(genKey(nb_big - nb_small, False, i))
-            # r = bytes2int(genKey(nb_big, False, i))
-
+            p = bytes2int(genKey(nb_big - nb_small, False, i))
     print("{}Schnorr_group: generate g".format(depth * "\t"))
     while True:
         h = random.randint(2, p - 2)
 
-        g = pow(h, r, p)
+        g = pow(h, 2, p)
         if g != 1:
             break
     return DHParams(p, q, g, (nb_small, nb_big))

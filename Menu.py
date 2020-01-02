@@ -2,6 +2,7 @@ import os
 
 import Camellia as cam
 import crypto_utils as cu
+from diffie_hellman import *
 
 # from lib import hash
 
@@ -39,12 +40,14 @@ def generate_key_pairs():
         print('Error : not prime together')
 
     # public key N, C in a file "publicKey"
+    print("Generate a publicKey file.")
     publicKeyFile = open("publicKey", "w")
     publicKeyFile.write("N=" + str(N) + "\n")
     publicKeyFile.write("C=" + str(C))
     publicKeyFile.close()
 
     # private key U, N in a file "privateKey"
+    print("Generate a privateKey file.")
     r, U, V = cu.pgcde(C, M)  # r = pgcd(C, M)  U is the inverse of C modulo M      V is the inverse of M modulo C
     # print('U is the modular reverse of C' + str(U))
     privateKeyFile = open("privateKey", "w")
@@ -53,8 +56,15 @@ def generate_key_pairs():
     privateKeyFile.close()
 
 
+# Generate a certificate
 # certificateur signe avec sa clé privé la clé publique du site (s priv c(pub s))
 def generate_certif(private_key_certif=None, public_key_site=None):
+    """
+
+    :param private_key_certif:
+    :param public_key_site:
+    :return:
+    """
     public_key_site
     private_key_certif
 
@@ -69,8 +79,23 @@ def check_certif(public_key_certif=None):
 
 
 def share_secret_key():
-    # diffie hellman exchange
-    return
+    # created all parameters
+    DH_param, alice_A, alice_a = DH_gen_keys()  # now we have a, g, p and A for Alice
+    bobKeys = DH_comm_key_Bob(DH_param, alice_A)
+    aliceKeys = DH_comm_key_Alice(DH_param, alice_A, alice_a, bobKeys.public_key)
+    assert aliceKeys.private_key == bobKeys.private_key
+
+    print("Generate AliceKeys file.")
+    publicKeyFile = open("AliceKeyfile", "w")
+    publicKeyFile.write("PublicKey = " + str(aliceKeys.public_key) + "\n")
+    publicKeyFile.write("PrivateKey = " + str(aliceKeys.private_key))
+    publicKeyFile.close()
+
+    print("Generate BobKeys file.")
+    publicKeyFile = open("BobKeyfile", "w")
+    publicKeyFile.write("PublicKey = " + str(bobKeys.public_key) + "\n")
+    publicKeyFile.write("PrivateKey = " + str(bobKeys.private_key))
+    publicKeyFile.close()
 
 
 def encrypt():
