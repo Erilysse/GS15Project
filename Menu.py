@@ -1,12 +1,11 @@
 import os
 
-import Camellia as cam
-import crypto_utils as cu
-
+from lib import Camellia as cam
+from lib import crypto_utils as cu
+# from lib import signature as si
 from lib import hash
 
 os.chdir("tests")
-
 
 def switchcase(option):
     switcher = {
@@ -18,60 +17,37 @@ def switchcase(option):
         6: decrypt,
         7: sign,
         8: verify_sign,
-        9: all
+        9: all,
     }
     # Get the function from switcher dictionary
-    func = switcher.get(option, lambda: "Option incorrect")
+    func = switcher.get(option, lambda: "option incorrect")
     return func()
-
-
-print("Hi ! This is the Menu.")
-print("Please, choose an option: \n"
-      "1 : Generate public / private key pairs \n"  # pour le certificateur et le site
-      "2 : Generate a certificate \n"
-      "3 : Check the validity of a certificate \n"
-      "4 : Share a secret key \n"  # camellia private key exchange in diffie hellman
-      "5 : Encrypt a message \n"  # camellia encryption
-      "6 : Decrypt a message \n"  # camellia decryption
-      "7 : Sign a message \n"  # fonction de hachage + algorithme de signature
-      "8 : Verify a signature \n"  # extraire la signature, le document, réappliquer la fonction de hachage, 
-      # et vérifier si c = 
-      "9 : Complete all options \n"
-      )
-
-option = input("Specify the option : ")
-option = int(option)
-print("You have chosen the option", option)
-switchcase(option)
-
 
 def generate_key_pairs():
     """
-      creation of public key (implementation RSA)
-      # choose two primes numbers P and Q
-      # take N = P x Q
-      # M = (P-1) x (Q-1)
-      # find C which is prime with M (PGCD)
-      #public key = N et C
+    Use of RSA keys
+    """
+    # ask the folder where the keys will be stored
+    folder_out_address = input("Enter folder address in which to save the keys :\n")
+    # ask the length of the keys we want
+    length = int(input("Which length do you want for your keys ?"))
+    # creation of public key
+    keys = cu.create_key_pairs(length)
+    # creation of key object with public and private parts
+    keys_object = cu.Key(0, keys[0], keys[1])
+    keys_object.store(folder_out_address)
 
-      # creation of private key
-      # calcul U tq C x U + M x V = 1 (algo d'euclide etendu)
-      # clé privé : U et N
-      # creation of key object with public and private parts
-      """
 
-
-# certificateur signe avec sa clé privé la clé publique du site (s priv c(pub s))
-def generate_certif(private_key_certif=None, public_key_site=None):
-    public_key_site
-    private_key_certif
+# certificateur signe avec sa clé privé
+# la clé publique du site (s priv c(pub s))
+def generate_certif(public_key):
 
     return
 
 
-# certificateur donne sa clé publique pub c et visiteur vérifie le certificate
-def check_certif(public_key_certif=None):
-    public_key_certif
+# certificateur donne sa clé publique pub c
+# et visiteur vérifie le certificate
+def check_certif():
 
     return
 
@@ -85,8 +61,9 @@ def encrypt():
     # input of the file we will encrypt
     file_in_address = input("Where is the file you want to encrypt ? Precise an address like C:/Documents/etc.. : \n")
     # generate camellia key
-    ckey_address = str(input("Where is your private key file ? Precise an address"))
-    ckey = cam.CamelliaKey(ckey_address)
+    ckey_address = input("Where is your private key file ? Precise an address\n")
+    length = int(input("Precise the key file's bits number. It must be 128, 192 or 256.\n"))
+    ckey = cam.CamelliaKey(ckey_address, length)
     # input of the cipher mode we will use for the encryption
     print("Please, choose a cipher mode: \n"
           "1 : ECB (Electronic Code Book)\n"
@@ -106,26 +83,6 @@ def encrypt():
     else:
         print("the cipher mode is PCBC. \n")
         cu.PCBC.cipher(cam.encryption, file_in_address, "encrypted_message_pcbc.txt", 128, ckey, cu.genVector())
-
-
-def sign():
-    file_in_address = input("Where is the file you want to sign ?")
-    file_in_address = str(file_in_address)
-    # implementation of hash_message to do with param : file in adress and file out adress
-    hash.hash_message(file_in_address, "file_hash_sended.txt")
-
-
-def verify_sign():
-    file_received_address = input("Where is the file you want to verify its signature ?")
-    file_received_address = str(file_received_address)
-    file_hash_address = input("Where is the hash file ?")
-    file_hash_address = str(file_hash_address)
-    hash.hash_message(file_received_address, "file_hash_received.txt")
-    is_same_hash = hash.compare_hash(file_hash_address, "file_hash_received.txt")
-    if is_same_hash:
-        print("hashs are conform. file integrity check succeed.")
-    else:
-        print("hashs are not conform. file integrity check failed.")
 
 
 def decrypt():
@@ -159,5 +116,49 @@ def decrypt():
         print("You can find the encrypted data in encrypted_message_pcbc.txt")
 
 
+def sign():
+    file_in_address = input("Where is the file you want to sign ?")
+    file_in_address = str(file_in_address)
+    # need public key, private key for calcul
+    # need file in and out adress for hash
+    # signature = si.sign_dsa(public_key,private_key,file_in_address,"file_hash_sended.txt")
+    # open("signature").write(signature)
+
+def verify_sign():
+    file_received_address = input("Where is the file you want to verify its signature ?")
+    file_received_address = str(file_received_address)
+    file_hash_address = input("Where is the hash file ?")
+    file_hash_address = str(file_hash_address)
+    public_key = input("Where is the public key file ?")
+    private_key = input("Where is the private key file ?")
+    """ si.sign_dsa(public_key, private_key, file_received_address, "file_hash_received.txt")
+    is_same_sign = si.compare_sign(file_hash_address, "file_hash_received.txt")
+    if is_same_sign:
+        print("hashs are conform. file integrity check succeed.")
+    else:
+        print("hashs are not conform. file integrity check failed.")
+"""
+
 def all():
     return
+
+
+
+print("Hi ! This is the Menu.")
+print("Please, choose an option: \n"
+      "1 : Generate public / private key pairs \n"  # RSA ou DSA ?? pour le certificateur et le site
+      "2 : Generate a certificate (we suppose we are the certifier) \n"
+      "3 : Check the validity of a certificate (we suppose we are the certifier) \n"
+      "4 : Share a secret key \n"  # camellia private key exchange in diffie hellman
+      "5 : Encrypt a message \n"  # camellia encryption
+      "6 : Decrypt a message \n"  # camellia decryption
+      "7 : Sign a message \n"  # fonction de hachage + algorithme de signature DSA
+      "8 : Verify a signature \n"  # DSA : extraire la signature, le document, réappliquer la fonction de hachage, 
+      # et vérifier si c = 
+      "9 : Complete all options \n"
+      )
+
+option = input("Specify the option : ")
+option = int(option)
+print("You have chosen the option", option)
+switchcase(option)

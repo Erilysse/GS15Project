@@ -1,7 +1,14 @@
 from lib import Camellia as cam
-from lib import crypto_utils as cu
+from bitstring import BitArray
+import os
 
-print("Hello \n")
-key = cam.CamelliaKey(128,"tests/128key.txt")
-print(key.KL)
-print(key.KR)
+os.chdir("tests")
+
+camellia_key = cam.CamelliaKey("128key.txt", 128)
+message = "0x0123456789abcdeffedcba9876543210"
+ms = BitArray(message)
+print(ms)
+cipher = cam.encryption(ms,camellia_key)
+print(cipher)
+decipher = cam.decryption(cipher,camellia_key)
+print(decipher)
