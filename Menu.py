@@ -73,9 +73,9 @@ def generate_certif(private_key_certif=None, public_key_site=None):
     return
 
 
-# certificateur donne sa clé publique pub c et visiteur vérifie le certificate
-def check_certif(public_key_certif=None):
-    public_key_certif
+# certificateur donne sa clé publique pub c
+# et visiteur vérifie le certificate
+def check_certif():
 
     return
 
@@ -105,8 +105,9 @@ def encrypt():
     # input of the file we will encrypt
     file_in_address = input("Where is the file you want to encrypt ? Precise an address like C:/Documents/etc.. : \n")
     # generate camellia key
-    ckey_address = str(input("Where is your private key file ? Precise an address"))
-    ckey = cam.CamelliaKey(ckey_address)
+    ckey_address = input("Where is your private key file ? Precise an address\n")
+    length = int(input("Precise the key file's bits number. It must be 128, 192 or 256.\n"))
+    ckey = cam.CamelliaKey(ckey_address, length)
     # input of the cipher mode we will use for the encryption
     print("Please, choose a cipher mode: \n"
           "1 : ECB (Electronic Code Book)\n"
@@ -126,26 +127,6 @@ def encrypt():
     else:
         print("the cipher mode is PCBC. \n")
         cu.PCBC.cipher(cam.encryption, file_in_address, "encrypted_message_pcbc.txt", 128, ckey, cu.genVector())
-
-
-def sign():
-    file_in_address = input("Where is the file you want to sign ?")
-    file_in_address = str(file_in_address)
-    # implementation of hash_message to do with param : file in adress and file out adress
-    hash.hash_message(file_in_address, "file_hash_sended.txt")
-
-
-def verify_sign():
-    file_received_address = input("Where is the file you want to verify its signature ?")
-    file_received_address = str(file_received_address)
-    file_hash_address = input("Where is the hash file ?")
-    file_hash_address = str(file_hash_address)
-    hash.hash_message(file_received_address, "file_hash_received.txt")
-    is_same_hash = hash.compare_hash(file_hash_address, "file_hash_received.txt")
-    if is_same_hash:
-        print("hashs are conform. file integrity check succeed.")
-    else:
-        print("hashs are not conform. file integrity check failed.")
 
 
 def decrypt():
@@ -179,11 +160,34 @@ def decrypt():
         print("You can find the encrypted data in encrypted_message_pcbc.txt")
 
 
+def sign():
+    file_in_address = input("Where is the file you want to sign ?")
+    file_in_address = str(file_in_address)
+    # need public key, private key for calcul
+    # need file in and out adress for hash
+    # signature = si.sign_dsa(public_key,private_key,file_in_address,"file_hash_sended.txt")
+    # open("signature").write(signature)
+
+def verify_sign():
+    file_received_address = input("Where is the file you want to verify its signature ?")
+    file_received_address = str(file_received_address)
+    file_hash_address = input("Where is the hash file ?")
+    file_hash_address = str(file_hash_address)
+    public_key = input("Where is the public key file ?")
+    private_key = input("Where is the private key file ?")
+    """ si.sign_dsa(public_key, private_key, file_received_address, "file_hash_received.txt")
+    is_same_sign = si.compare_sign(file_hash_address, "file_hash_received.txt")
+    if is_same_sign:
+        print("hashs are conform. file integrity check succeed.")
+    else:
+        print("hashs are not conform. file integrity check failed.")
+"""
+
 def all():
     return
 
 
-def switch_case(case_number):
+def switchcase(case_number):
     switcher = {
         1: generate_key_pairs,
         2: generate_certif,
@@ -193,10 +197,10 @@ def switch_case(case_number):
         6: decrypt,
         7: sign,
         8: verify_sign,
-        9: all
+        9: all,
     }
     # Get the function from switcher dictionary
-    func = switcher.get(case_number, lambda: "Option incorrect")
+    func = switcher.get(case_number, lambda: "option incorrect")
     return func()
 
 
