@@ -27,7 +27,9 @@ In Development.
 
 ## The Diffie Hellman protocol
 The principle of Shnorr groups allows to generate prime numbers. According to the statement of our project, the prime number p (and then q in the rest of the project) is determined. The number p is an integer of minimum 512 bits (64 bytes). We thus fixed it at 128 bytes to allow to have a number as random as possible wherever we want to generate this number. 
+
 The writing of Alice and Bob's keys is done in two separate files. For ease of use, the private and public keys of each are in the same file. This is, of course, not recommended for real use. 
+
 In the case of our exercise, we imagine taking the role of Alice. She generates Diffie Hellman's parameters, generates her personal parameters (a private random number, her public key that she will share with Bob) and will ask Bob to share her communication key with her. 
 Afterwards, we will encrypt the files with this key.
 
@@ -49,13 +51,8 @@ The structure of the project:
 At the moment there are 5 files created. Each file can be called to test the functions associated with the file, except the crypto_utils.py file:
 
 * **crypto_utils :** This is THE file containing supporting functions such as block cipher methods or miller-rabin test.
-* ** diffie_hellman :** A file defining functions associated with the diffie hellman protocol. By running the functions in sequence, we simulate a communication between Alice and Bob using a diffie hellman protocol.
-* **Signature :** A file defining the functions associated with the DSA signature method. By calling it, it simulates the request to sign a message with Alice's key, and the verification of it. 
-We call Diffie Hellman's algorithm for Alice and Bob, it's classic. In this exercise, we're working with three protagonists : 
-- A certifier, 
-- A website, 
-- A visitor. 
-The certifier has a set of keys (pub_c and priv_c).  The website has another set of keys (pub_s and priv_s). The certifier issues a certificate to the website using his private key and the public key of the website. Otherwise, he signs pub_s with priv_c.   The visitor wants to be reassured about the website he is visiting. He receives pub_c. He wants to verify that it is a website certified by the owner of pub_c. Under development, not yet push on the Master branch. 
-* **Camellia :** A file defining the functions associated with the Camellia encryption method. By calling it, we test the encryption and decryption of a block of data. It is not yet fully operational. 
-* **Read :** A file testing the block encryption and decryption methods on a file
+* **diffie_hellman :** A file defining functions associated with the diffie hellman protocol. By running the functions in sequence, we simulate a communication between Alice and Bob using a diffie hellman protocol.
+* **signature :** A file defining the functions associated with the DSA signature method. By calling it, it simulates the request to sign a message with Alice's key, and the verification of it.  We call Diffie Hellman's algorithm for Alice and Bob, it's classic. In this exercise, we're working with three protagonists : a certifier, a website, a visitor. The certifier has a set of keys (pub_c and priv_c).  The website has another set of keys (pub_s and priv_s). The certifier issues a certificate to the website using his private key and the public key of the website. Otherwise, he signs pub_s with priv_c. The visitor wants to be reassured about the website he is visiting. He receives pub_c. He wants to verify that it is a website certified by the owner of pub_c. Under development, not yet push on the Master branch. 
+* **camellia :** A file defining the functions associated with the Camellia encryption method. By calling it, we test the encryption and decryption of a block of data. It is not yet fully operational. 
+* **read :** A file testing the block encryption and decryption methods on a file
 * **hash :** Should allow hashing using a sponge function. We often had to transform entire blocks of bits to apply them to binary functions. In our crypto_utils file, we have been busy developing several tools to handle these things. Little by little, we finally found functions under python that allow to handle integers more simply. 
