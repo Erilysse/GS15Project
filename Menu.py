@@ -56,15 +56,17 @@ def generate_key_pairs():
     privateKeyFile.close()
 
 
-# Generate a certificate
-# certificateur signe avec sa clé privé la clé publique du site (s priv c(pub s))
+# Generate a certificate. Need the certifier's private key and the entity's public key
 def generate_certif(private_key_certif=None, public_key_site=None):
     """
-
+    @:brief
     :param private_key_certif:
     :param public_key_site:
     :return:
     """
+   # Take Alice and Bob's key
+
+
     public_key_site
     private_key_certif
 
@@ -97,6 +99,7 @@ def share_secret_key():
     publicKeyFile.write("PrivateKey = " + str(bobKeys.private_key))
     publicKeyFile.close()
 
+    return aliceKeys, bobKeys
 
 def encrypt():
     # input of the file we will encrypt
