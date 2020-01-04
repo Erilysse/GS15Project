@@ -19,7 +19,7 @@ import random
 # print("Alice communicated key : ")
 # bytesToString(A_hex)
 
-def DH_gen_keys(lenth_p=128, lenth_q=64):
+def DH_gen_keys(lenth_p, lenth_q):
     """
     @brief      Generate a couple of asymmetric keys
 
@@ -28,18 +28,21 @@ def DH_gen_keys(lenth_p=128, lenth_q=64):
 
     @return     Diffie Hellman parameters (g, p, q), Alice public shared key, Alice private random number a
     """
-    depth = get_depth()
+    if lenth_p is None:
+        lenth_p = 128
+    if lenth_q is None:
+        lenth_q = 64
     print("* Starting to generate asymmetric keys with Diffie Hellman")
     DH_param = Schnorr_group(lenth_p, lenth_q)
 
-    print("Generate a private key".format(depth * "\t"))
-    private_number = random.randint(2, DH_param.q)
+    print("Generate a private key")
+    private_key = random.randint(2, DH_param.q)
 
-    print("Generate a public key".format(depth * "\t"))
-    public_key = pow(DH_param.g, private_number, DH_param.p)
+    print("Generate a public key")
+    public_key = pow(DH_param.g, private_key, DH_param.p)
     # pow(DH_param.g, private_key, DH_param.p)
 
-    return DH_param, public_key, private_number
+    return Key(DH_param, public_key, private_key)
 
 
 def DH_comm_key_Bob(DH_param, client_public_key):
@@ -51,29 +54,28 @@ def DH_comm_key_Bob(DH_param, client_public_key):
 
     @return     La clé de communication, publique et privé de bob
     """
-    depth = get_depth()
     print("Generate Bob keys : ")
 
-    private_number = random.randint(2, DH_param.q)
-    pub_key = pow(DH_param.g, private_number, DH_param.p)
+    private_key = random.randint(2, DH_param.q)
+    pub_key = pow(DH_param.g, private_key, DH_param.p)
     # pow(DH_param.g, private_key, DH_param.p)
 
-    private_key = pow(client_public_key, private_number, DH_param.p)
+    shared_key = pow(client_public_key, private_key, DH_param.p)
     # pow(client_public_key, private_key, DH_param.p)
 
-    return Key(DH_param, pub_key, private_key)
+    return shared_key, Key(DH_param, pub_key, private_key)
 
 
-def DH_comm_key_Alice(DHParams, my_public_key, my_private_number, server_pub_key):
+def DH_comm_key_Alice(my_key, server_pub_key):
     """
-    @brief      Génère la clé de communication du coté d'alice
+    @brief      Generate the shared key on Alice side
 
-    @param      my_key          Ma clé
-    @param      server_pub_key  La clé public du serveur
+    @param      my_key          My key
+    @param      server_pub_key  The server public key
 
-    @return     La clé de communication
+    @return     Alice's shared key (or communication key)
     """
-    my_private_key = pow(server_pub_key, my_private_number, DHParams.p)
-    return Key(DHParams, my_public_key, my_private_key)
+    my_shared_key = pow(server_pub_key, my_key.private_key, my_key.param.p)
+    return my_shared_key
     # pow(server_pub_key, my_key.private_key, my_key.param.p)
 

@@ -7,6 +7,8 @@ import re
 from math import sqrt
 from secrets import randbits
 
+import crypto as crypto
+
 RMCheck = 128  # verif number with Rabin Miller
 
 
@@ -338,7 +340,7 @@ def genKey(nb_bytes, print_num, i=1):
     """
     depth = get_depth()
     verif = True
-    print("{}genKey: Generate a {} bytes long random number. try {}".format(depth * "\t", nb_bytes, i), end="\r")
+    print("genKey: Generate a {} bytes long random number. try {}".format(nb_bytes, i), end="\r")
     while verif:
         key = os.urandom(nb_bytes)
         if bytes2int(key) != 0:
@@ -365,16 +367,16 @@ def genVector():
 def create_signed_cert(pubK, privK):
     # elements to generate the certificate
     print("Generate the certificate for the website : \n"
-          "FR \n"
-          "France \n"
-          "Troyes \n"
-          "GS15 Project \n")
+          "Alias for countryName : FR \n"
+          "Alias for localityName : France \n"
+          "Alias for organizationalUnitName : GS15 Web Site \n"
+          "Alias for commonName : juliette.mendras@utt.fr")
     # Certificate generation
     cert = crypto.X509()
     cert.get_subject().C = "FR"
-    cert.get_subject().ST = "France"
-    cert.get_subject().L = "Troyes"
-    cert.get_subject().O = "GS15 Project"
+    cert.get_subject().L = "France"
+    cert.get_subject().OU = "GS15 Web Site"
+    cert.get_subject().CN = "juliette.mendras@utt.fr"
     cert.set_serial_number(1000)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
@@ -391,34 +393,33 @@ def create_signed_cert(pubK, privK):
 
 def Schnorr_group(nb_big, nb_small):
     """
-    @brief      Génére un group de Schnorr
+    @brief      Schnorr group generator
 
-    @param      nb_small  Le nombre d'octes pour q
-    @param      nb_big    Le nombre d'octes pour p
+    @param      nb_small  bytes for q
+    @param      nb_big    bytes for p
 
-    @return     Le groupe de schorr généré dans une classe DHParams
+    @return     The Schnorr group generated and inserted in a DHParams object
     """
-    depth = get_depth()
-    print("{}Schnorr_group: Generate prime q".format(depth * "\t"))
+
+    print("------------------------------------------------------")
+    print("Schnorr_group: Generate prime p and q.")
     i = 1
     # r = bytes2int(genKey(nb_big - nb_small, False, i))
     p = bytes2int(genKey(nb_big, False, i))
-    verif = True
-    while verif:
+    while True:
         q = 2*p - 1
         if is_prime(q) and q != 1:
             break
         else:
             i += 1
             p = bytes2int(genKey(nb_big - nb_small, False, i))
-    print("{}Schnorr_group: generate g".format(depth * "\t"))
+    print("Schnorr_group: generate g.")
     while True:
         h = random.randint(2, p - 2)
-
         g = pow(h, 2, p)
         if g != 1:
             break
-    return DHParams(p, q, g, (nb_small, nb_big))
+    return DHParams(p, q, g, (nb_big, nb_small))
 
 
 def parseKey(printed_key):

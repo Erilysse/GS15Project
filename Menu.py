@@ -1,6 +1,10 @@
 import os
 
+import yaml
+
 import Camellia as cam
+from certificate import *
+from dsa import *
 import crypto_utils as cu
 from diffie_hellman import *
 
@@ -8,7 +12,26 @@ from diffie_hellman import *
 
 primeNumber_Size = 512  # size / quantity of bits to generate the prime number
 
-os.chdir("tests")
+alice_keys = None
+bob_keys = None
+shared_key = None
+h = None
+
+# ===========================================
+"""
+    IO for yaml file
+"""
+
+
+def read_yaml(file):
+    with open(file, 'r') as infile:
+        return yaml.load(infile, Loader=yaml.FullLoader)
+
+
+def write_yaml(data, file):
+    with open(file, 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+
 
 """
     Function which generate a key pairs : Public and Private. 
@@ -29,31 +52,61 @@ def generate_key_pairs():
       Private key : U and N
       creation of key object and write the public and private keys in two separate files
     """
-    P = cu.getPrime(primeNumber_Size)
-    Q = cu.getPrime(primeNumber_Size)
-    N = P * Q
-    M = (P - 1) * (Q - 1)  # Euler indicator
+    print("Welcome in the \"key admin\" part. What do you want me to do?\n"
+          "1: Generate asymmetric keys\n"
+          "2: I want to share keys. Create a communication key!\n"
+          "3: Sorry, go back to menu.")
+    option_part1 = int(input("Choose your option: "))
+    if option_part1 == 1:
+        print("I'm going to generate asymmetric keys.")
+        P = cu.getPrime(primeNumber_Size)
+        Q = cu.getPrime(primeNumber_Size)
+        N = P * Q
+        M = (P - 1) * (Q - 1)  # Euler indicator
 
-    C = cu.getPrime(primeNumber_Size)  # C can't divide M => they are Prime together
-    while M % C == 0:
-        C = cu.getPrime(primeNumber_Size)
-        print('Error : not prime together')
+        C = cu.getPrime(primeNumber_Size)  # C can't divide M => they are Prime together
+        while M % C == 0:
+            C = cu.getPrime(primeNumber_Size)
+            print('Error : not prime together')
 
-    # public key N, C in a file "publicKey"
-    print("Generate a publicKey file.")
-    publicKeyFile = open("publicKey", "w")
-    publicKeyFile.write("N=" + str(N) + "\n")
-    publicKeyFile.write("C=" + str(C))
-    publicKeyFile.close()
+        # public key N, C in a file "publicKey"
+        print("Generate a publicKey file.")
+        publicKeyFile = open("../files/keys/Gen_publicKey", "w")
+        publicKeyFile.write("N=" + str(N) + "\n")
+        publicKeyFile.write("C=" + str(C))
+        publicKeyFile.close()
 
-    # private key U, N in a file "privateKey"
-    print("Generate a privateKey file.")
-    r, U, V = cu.pgcde(C, M)  # r = pgcd(C, M)  U is the inverse of C modulo M      V is the inverse of M modulo C
-    # print('U is the modular reverse of C' + str(U))
-    privateKeyFile = open("privateKey", "w")
-    privateKeyFile.write("U=" + str(U) + "\n")
-    privateKeyFile.write("N=" + str(N))
-    privateKeyFile.close()
+        # private key U, N in a file "privateKey"
+        print("Generate a privateKey file.")
+        r, U, V = cu.pgcde(C, M)  # r = pgcd(C, M)  U is the inverse of C modulo M      V is the inverse of M modulo C
+        # print('U is the modular reverse of C' + str(U))
+        privateKeyFile = open("../files/keys/Gen_privateKey", "w")
+        privateKeyFile.write("U=" + str(U) + "\n")
+        privateKeyFile.write("N=" + str(N))
+        privateKeyFile.close()
+    elif option_part1 == 2:
+        share_secret_key()
+    elif option_part1 == 3:
+        print("Exit.")
+    else:
+        print("\n Input error.")
+    return
+
+
+def menu_certif():
+    print("Welcome in the certificate part. What do you want me to do master?\n"
+          "1: I want to sign a message\n"
+          "2: I want to verify a signature \n"
+          "3: Sorry, go back to menu.")
+    option_part6 = int(input("Choose your option: "))
+    if option_part6 == 1:
+        generate_certif()
+    elif option_part6 == 2:
+        check_certif()
+    elif option_part6 == 3:
+        print("Exit.")
+    else:
+        print("\n Input error.")
 
 
 # Generate a certificate. Need the certifier's private key and the entity's public key
@@ -64,42 +117,97 @@ def generate_certif(private_key_certif=None, public_key_site=None):
     :param public_key_site:
     :return:
     """
-   # Take Alice and Bob's key
+    # Take Alice and Bob's key from the Diffie Hellman keys exchange.
+    # Certifier is Alice and the site has Bob's keys couple
 
+    """
+    PROCESS
+    STEP 0) certifier creates its own couple ok keys (pub_c, priv_c). Web site do the same (pub_s, priv_s). 
+    STEP 1) WebSite creates a certificateObject (with pub_s). He signs pub_s with priv_c.
+    Now we have a new parameter : certificate = S_privc(pubs)   
+    """
 
-    public_key_site
-    private_key_certif
+    print("Ok i'm going to create a certificate for the webSite!")
+    print("=============================================================================")
+    print("First, I need the certifier keys and the website keys too!")
 
+    certifier_keys = DH_gen_keys(128, 64)  # 256, 32 now we have a, g, p and A for Certifier
+    website_keys = DH_gen_keys(128, 64)
+    write_yaml(certifier_keys, "./files/keys/certifier.yml")
+    write_yaml(website_keys, "./files/keys/website.yml")
+
+    print("================================================================")
+    print("Starting certificate and thumbprint creations.")
+    certif = Certificate()
+    certif.create_certificate(website_keys.public_key, certifier_keys.public_key)
+    certif.add_thumbprint()
+
+    print("Writing the elements into a file.")
+    certificate_file = input("Enter the certificate file name (without the extension): ./files/certificates/")
+    write_yaml(certif, "./files/certificates/" + certificate_file + ".yml")
+    print("================================================================")
+    print("Starting the signature part.")
+    print("The certifier is going to sign the thumbprint of pub_s with priv_c")
+    # certif = read_yaml("../certificates/" + certificate_file + ".yml") #verification qu'on lit correctement le doc
+    signature = DSA_encrypt(certifier_keys, certif.thumbprint.encode('utf-8'))
+    print("Signature entered into the certificate file : " + certificate_file)
+    certif.add_signed_owner_pubkey(signature)
+    write_yaml(certif, "./files/certificates/" + certificate_file + ".yml")
+    write_yaml(signature, "./files/certificates/signature_" + certificate_file + ".yml")
+    print("================================================================")
     return
 
 
-# certificateur donne sa clé publique pub c
-# et visiteur vérifie le certificate
-def check_certif():
+# certificateur donne sa clé publique pub c et visiteur vérifie le certificate
+def check_certif(public_key_certif=None):
+    """
+    STEP 2) A visitor wants to verify the website identity.
+    He has to decipher the certificate parameter with pub_c.
+    The result has to be equal with pub_s.
+    """
+    print("================================================================")
+    print("Certificate Verification initiated!")
 
+    print("Choose the Certificate you want to verify :")
+    certificate_name = input("Enter the file name (without the extension): ../files/certificates/")
+    certificate = read_yaml("./files/certificates/" + certificate_name + ".yml")
+    signature = read_yaml("./files/certificates/signature_" + certificate_name + ".yml")
+    print("I need pub_c and S_privc(pub_s)")
+    verify = DSA_decrypt(signature)
+    if verify:
+        print("Everything is safe! The signature is verified.")
+    else:
+        print("Be careful: the signature is incorrect")
+    print("================================================================")
     return
 
 
 def share_secret_key():
+    global alice_keys
+    print("I'm going to create a communication key with Diffie Hellman protocol.")
+    print("First, I create Alice / Certifier couple keys.")
     # created all parameters
-    DH_param, alice_A, alice_a = DH_gen_keys()  # now we have a, g, p and A for Alice
-    bobKeys = DH_comm_key_Bob(DH_param, alice_A)
-    aliceKeys = DH_comm_key_Alice(DH_param, alice_A, alice_a, bobKeys.public_key)
-    assert aliceKeys.private_key == bobKeys.private_key
+    alice_keys = DH_gen_keys()  # now we have a, g, p and A for Alice
+    print("Starting generate Bob keys.")
+    shared_key_bob, bob_keys = DH_comm_key_Bob(alice_keys.param, alice_keys.public_key)
+    shared_key_alice = DH_comm_key_Alice(alice_keys, bob_keys.public_key)
+    assert shared_key_alice == shared_key_bob
 
     print("Generate AliceKeys file.")
-    publicKeyFile = open("AliceKeyfile", "w")
-    publicKeyFile.write("PublicKey = " + str(aliceKeys.public_key) + "\n")
-    publicKeyFile.write("PrivateKey = " + str(aliceKeys.private_key))
-    publicKeyFile.close()
+    aliceKeyFile = open("AliceKeyfile", "w")
+    aliceKeyFile.write("PublicKey = " + str(alice_keys.public_key) + "\n")
+    aliceKeyFile.write("PrivateKey = " + str(alice_keys.private_key) + "\n")
+    aliceKeyFile.write("SharedKey = " + str(shared_key_alice))
+    aliceKeyFile.close()
 
     print("Generate BobKeys file.")
-    publicKeyFile = open("BobKeyfile", "w")
-    publicKeyFile.write("PublicKey = " + str(bobKeys.public_key) + "\n")
-    publicKeyFile.write("PrivateKey = " + str(bobKeys.private_key))
-    publicKeyFile.close()
+    bobKeyFile = open("BobKeyfile", "w")
+    bobKeyFile.write("PublicKey = " + str(bob_keys.public_key) + "\n")
+    bobKeyFile.write("PrivateKey = " + str(bob_keys.private_key) + "\n")
+    bobKeyFile.write("SharedKey = " + str(shared_key_bob))
+    bobKeyFile.close()
+    return
 
-    return aliceKeys, bobKeys
 
 def encrypt():
     # input of the file we will encrypt
