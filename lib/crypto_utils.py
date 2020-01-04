@@ -39,6 +39,20 @@ class DHParams(object):
         return "(p=%r, q=%r, g=%r)" % (
             self.p, self.q, self.g)
 
+class DSASignature(object):
+    """
+    Classe regroupant les paramètres, la clé public utilisé, r et s généré par DSA
+    """
+    def __init__(self, params, Pkey, r, s, msgs):
+        self.param = params
+        self.public_key = Pkey
+        self.r = r
+        self.s = s
+        self.msg = msgs
+    def __repr__(self):
+        return "%s(param=%r, public_key=%r, r=%r, s=%r, msg=%r)" % (
+            self.__class__.__name__, self.param, self.public_key, self.r, self.s, self.msg)
+
 
 def create_key_pairs(length):
     """

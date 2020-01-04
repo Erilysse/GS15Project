@@ -71,7 +71,7 @@ def generate_key_pairs():
 
         # public key N, C in a file "publicKey"
         print("Generate a publicKey file.")
-        publicKeyFile = open("../files/keys/Gen_publicKey", "w")
+        publicKeyFile = open("./files/keys/Gen_publicKey", "w")
         publicKeyFile.write("N=" + str(N) + "\n")
         publicKeyFile.write("C=" + str(C))
         publicKeyFile.close()
@@ -80,7 +80,7 @@ def generate_key_pairs():
         print("Generate a privateKey file.")
         r, U, V = cu.pgcde(C, M)  # r = pgcd(C, M)  U is the inverse of C modulo M      V is the inverse of M modulo C
         # print('U is the modular reverse of C' + str(U))
-        privateKeyFile = open("../files/keys/Gen_privateKey", "w")
+        privateKeyFile = open("./files/keys/Gen_privateKey", "w")
         privateKeyFile.write("U=" + str(U) + "\n")
         privateKeyFile.write("N=" + str(N))
         privateKeyFile.close()
@@ -187,21 +187,21 @@ def share_secret_key():
     print("I'm going to create a communication key with Diffie Hellman protocol.")
     print("First, I create Alice / Certifier couple keys.")
     # created all parameters
-    alice_keys = DH_gen_keys()  # now we have a, g, p and A for Alice
+    alice_keys = DH_gen_keys(128, 64)  # now we have a, g, p and A for Alice
     print("Starting generate Bob keys.")
     shared_key_bob, bob_keys = DH_comm_key_Bob(alice_keys.param, alice_keys.public_key)
     shared_key_alice = DH_comm_key_Alice(alice_keys, bob_keys.public_key)
     assert shared_key_alice == shared_key_bob
 
     print("Generate AliceKeys file.")
-    aliceKeyFile = open("AliceKeyfile", "w")
+    aliceKeyFile = open("./files/keys/AliceKeyfile", "w")
     aliceKeyFile.write("PublicKey = " + str(alice_keys.public_key) + "\n")
     aliceKeyFile.write("PrivateKey = " + str(alice_keys.private_key) + "\n")
     aliceKeyFile.write("SharedKey = " + str(shared_key_alice))
     aliceKeyFile.close()
 
     print("Generate BobKeys file.")
-    bobKeyFile = open("BobKeyfile", "w")
+    bobKeyFile = open("./files/keys/BobKeyfile", "w")
     bobKeyFile.write("PublicKey = " + str(bob_keys.public_key) + "\n")
     bobKeyFile.write("PrivateKey = " + str(bob_keys.private_key) + "\n")
     bobKeyFile.write("SharedKey = " + str(shared_key_bob))
@@ -276,6 +276,7 @@ def sign():
     # signature = si.sign_dsa(public_key,private_key,file_in_address,"file_hash_sended.txt")
     # open("signature").write(signature)
 
+
 def verify_sign():
     file_received_address = input("Where is the file you want to verify its signature ?")
     file_received_address = str(file_received_address)
@@ -290,6 +291,7 @@ def verify_sign():
     else:
         print("hashs are not conform. file integrity check failed.")
 """
+
 
 def all():
     return
@@ -329,4 +331,4 @@ print("Please, choose an option: \n"
 option = input("Specify the option : ")
 option = int(option)
 print("You have chosen the option", option)
-switch_case(option)
+switchcase(option)
