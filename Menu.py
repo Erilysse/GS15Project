@@ -228,45 +228,50 @@ def encrypt():
     mode = int(mode)
     if mode == 1:
         print("the cipher mode is EBC. \n")
-        cu.ECB(cam.encryption, file_in_address, "encrypted_message_ecb.txt", 128, ckey)
+        cu.ECB(cam.encryption, file_in_address, "encrypted_message_ecb.txt", ckey)
+        print("You can find the encrypted data in encrypted_message_ecb.txt")
     elif mode == 2:
         print("the cipher mode is CBC. \n")
-        cu.CBC.cipher(cam.encryption, file_in_address, "encrypted_message_cbc.txt", 128, ckey, cu.genVector())
+        cu.CBC.cipher(file_in_address, "encrypted_message_cbc.txt", ckey, cu.genVector())
+        print("You can find the encrypted data in encrypted_message_cbc.txt")
+        print("You can find the vector in vector.txt")
+
     else:
         print("the cipher mode is PCBC. \n")
-        cu.PCBC.cipher(cam.encryption, file_in_address, "encrypted_message_pcbc.txt", 128, ckey, cu.genVector())
+        cu.PCBC.cipher(file_in_address, "encrypted_message_pcbc.txt", ckey, cu.genVector())
+        print("You can find the encrypted data in encrypted_message_pcbc.txt")
+        print("You can find the vector in vector.txt")
 
 
 def decrypt():
     # input of the file we will decrypt
     file_in_address = input("Where is the file you want to decrypt ? Precise an adress like C:/Documents/etc.. : \n")
-    file_in_address = str(file_in_address)
-    # find the camelliakey
-    ckey_address = str(input("Where is your private key file ? Precise an address"))
-    ckey = cam.CamelliaKey(ckey_address)
-    # input of the cipher mode we will use for the decryption
-    print("Please, choose the cipher mode used: \n"
+    # generate camellia key
+    ckey_address = input("Where is your private key file ? Precise an address\n")
+    length = int(input("Precise the key file's bits number. It must be 128, 192 or 256.\n"))
+    ckey = cam.CamelliaKey(ckey_address, length)
+    # input of the cipher mode we will use for the encryption
+    print("Please, choose a cipher mode: \n"
           "1 : ECB (Electronic Code Book)\n"
           "2 : CBC (Cipher Block Chaining)\n"
           "3 : PCBC (Propagating Cipher Block Chaining)\n"
           # "4 : Counter Mode -- not yet implemented \n"
           # "5 : GCM (Galois Counter Mode) -- not yet implemented \n"
           )
-    mode = input("Which one is it ?")
+    mode = input("Specify the cipher mode :")
     mode = int(mode)
     if mode == 1:
         print("the cipher mode is EBC. \n")
-        cu.ECB(cam.encryption, file_in_address, "encrypted_message_ecb.txt", 128, ckey)
-        print("You can find the encrypted data in encrypted_message_ecb.txt")
+        cu.ECB(cam.decryption, file_in_address, "decrypted_message_ecb.txt", ckey)
+        print("You can find the decrypted data in encrypted_message_ecb.txt")
     elif mode == 2:
         print("the cipher mode is CBC. \n")
-        cu.CBC.cipher(cam.encryption, file_in_address, "encrypted_message_cbc.txt", 128, ckey, cu.genVector())
-        print("You can find the encrypted data in encrypted_message_cbc.txt")
+        cu.CBC.decipher(file_in_address, "decrypted_message_cbc.txt", ckey, cu.genVector())
+        print("You can find the decrypted data in encrypted_message_cbc.txt")
     else:
         print("the cipher mode is PCBC. \n")
-        cu.PCBC.cipher(cam.encryption, file_in_address, "encrypted_message_pcbc.txt", 128, ckey, cu.genVector())
-        print("You can find the encrypted data in encrypted_message_pcbc.txt")
-
+        cu.PCBC.decipher(file_in_address, "encrypted_message_pcbc.txt", ckey, cu.genVector())
+        print("You can find the decrypted data in decrypted_message_pcbc.txt")
 
 def sign():
     file_in_address = input("Where is the file you want to sign ?")

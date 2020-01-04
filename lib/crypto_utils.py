@@ -6,6 +6,8 @@ import random
 import re
 from math import sqrt
 from secrets import randbits
+from lib import Camellia as cam
+from bitstring import BitArray, Bits
 
 import crypto as crypto
 
@@ -354,7 +356,7 @@ def genKey(nb_bytes, print_num, i=1):
     """
     depth = get_depth()
     verif = True
-    print("genKey: Generate a {} bytes long random number. try {}".format(nb_bytes, i), end="\r")
+    # print("{}genKey: Generate a {} bytes long random number. try {}".format(depth * "\t", nb_bytes, i), end="\r")
     while verif:
         key = os.urandom(nb_bytes)
         if bytes2int(key) != 0:
@@ -368,9 +370,9 @@ def genKey(nb_bytes, print_num, i=1):
 def genVector():
     """
         Generate a initialization vector of 128 bits
-        @:return    vector  128 bits number
+        @:return    bytes string of 128 bits
     """
-    vector = genKey(128)
+    vector = genKey(16, False)
     return vector
 
 
@@ -610,110 +612,144 @@ def bytes_lshift(bts, int):  # bts << int
 def bytes_rshift(bts, int):  # bts >> int
     return bitstring.BitArray(bytes=bts) >> int
 
-
-def padd(message, chunk_size):
-    # message need to be in bit or to be a bit number
-    # chunk size is a integer
-    if len(message) % chunk_size != 0:
-        message
-
+def mod(modulo):
+    return int(modulo)
 
 # ===========================================
 #            Block cipher mode
 # ===========================================
 
-def ECB(function, file_in, file_out, chunk_size, key):
+def ECB(function, file_in, file_out, key):
     """
     @brief      Mode ECB: chiffre/déchiffre le fichier avec la fonction de
                 chiffrement et la clé passée en paramètre dans un autre fichier
 
-    @:param      function    La fonction de chiffrement
     @:param      file_in     L'adresse du fichier d'entrée
     @:param      file_out    l'adresse du fichier de sortie
     @:param      chunk_size  La taille du bloc en bytes
     @:param      key         La clé en bytes
 
     """
-    if not isinstance(key, bytes):
-        raise TypeError("key must be set to bytes")
     with open(file_in, 'rb') as f:
-        s = open(file_out, 'wb+')
-        for chunk in iter(lambda: f.read(chunk_size), b''):
-            if len(chunk) != chunk_size:
-                chunk += bytes(chunk_size - len(chunk))
-            s.write(function(chunk, key))
-        s.close()
+        message = BitArray(bytes=f.read())
+        mod = len(message) % 128
+        if mod != 0:
+            message.append(128 - mod)
+        sortie = open(file_out, 'wb+')
+        temp = int(len(message) / 128)
+        if temp != 1:
+            x = 0
+            sort = BitArray()
+            while x != temp:
+                print("x:", x)
+                chunk = message[128 * x:(128 * (x + 1))]
+                print("chunk:", chunk)
+                if function == cam.decryption:
+                    cipher = function(chunk, key, True)
+                    print("function decryption, decipher:", cipher)
+                else:
+                    cipher = function(chunk, key)
+                    print("function encryption, cipher:", cipher)
+                sort.append(cipher)
+                print("sortie :", sort)
+                x = x+1
+            sort.tofile(sortie)
+        else:
+            print("There is no enough blocks to apply ECB mode.")
+        sortie.close()
+    f.close()
 
 
 class CBC(object):
     """Classe pour le mode CBC"""
 
     @staticmethod
-    def cipher(function, file_in, file_out, chunk_size, key, init_vector):
+    def cipher(file_in, file_out, key, init_vector):
         """
         @brief      Mode CBC chiffrement: chiffre le fichier avec la fonction de
                     chiffrement, la clé et le vecteur initial passé en
                     paramètre dans un autre fichier
 
-        @:param      function    La fonction de chiffrement
         @:param      file_in     L'adresse du fichier d'entrée
         @:param      file_out    L'adresse du fichier de sortie
-        @:param      chunk_size  La taille du bloc en bytes
         @:param      key         Camellia key object
-        @:param      init_vector  Le vecteur initial
+        @:param      init_vector  Le vecteur initial, a BitArray object
 
         """
-        if not isinstance(init_vector, bytes):
-            raise TypeError("init_vector must be set to bytes")
-        if not isinstance(key, bytes):
-            raise TypeError("key must be set to bytes")
-        if len(init_vector) != chunk_size:
-            raise ValueError("init_vector must be the same size of the chunk size")
-
+        init_vector = BitArray(init_vector)
+        print("vector init : ",init_vector)
+        init_vector.tofile(open("vector.txt", "wb+"))
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb+')
+            message = BitArray(bytes=f.read())
+            mod = len(message) % 128
+            if mod != 0:
+                message.append(128 - mod)
+            print("message_cipher :", message)
+            sortie = open(file_out, 'wb+')
+            temp = int(len(message) / 128)
             last_bytes = init_vector
-            for chunk in iter(lambda: f.read(chunk_size), b''):
-                if len(chunk) != chunk_size:
-                    chunk += bytes(chunk_size - len(chunk))
-                chunk = bytes_xor_bytes(chunk, last_bytes)
-                last_bytes = function(chunk, key)
-                s.write(last_bytes)
-            s.close()
+            if temp != 1:
+                x = 0
+                sort = BitArray()
+                while x != temp:
+                    print("x:", x)
+                    chunk = message[128 * x:(128 * (x + 1))]
+                    print("chunk:", chunk)
+                    chunk ^= last_bytes
+                    print("encrypt:",chunk)
+                    last_bytes = cam.encryption(chunk, key)
+                    print("function encryption, cipher:", last_bytes)
+                    sort.append(last_bytes)
+                    x = x + 1
+                sort.tofile(sortie)
+            else:
+                print("There is no enough blocks to apply CBC mode.")
+            sortie.close()
         f.close()
 
+
     @staticmethod
-    def decipher(function, file_in, file_out, chunk_size, key, init_vector):
+    def decipher(file_in, file_out, key, init_vector):
         """
         @brief      Mode CBC déchiffrement: déchiffre le fichier avec la fonction de
                     chiffrement, la clé et le vecteur initial passé en
                     paramètre dans un autre fichier
 
-        @:param      function    La fonction de chiffrement
         @:param      file_in     L'adresse du fichier d'entrée
         @:param      file_out    L'adresse du fichier de sortie
-        @:param      chunk_size  La taille du bloc en bytes
         @:param      key         Camellia Key object
         @:param      init_vector  Le vecteur initial
 
         """
-        if not isinstance(init_vector, bytes):
-            raise TypeError("init_vector must be set to bytes")
-        if not isinstance(key, bytes):
-            raise TypeError("key must be set to bytes")
-        if len(init_vector) != chunk_size:
-            raise ValueError("init_vector must be the same size of the chunk size")
-
+        vector = open(init_vector, 'rb')
+        init_vector = BitArray(vector)
+        print("vector d'initialisation :", init_vector)
+        if len(init_vector) != 128:
+            raise ValueError("init_vector must be 128 bits.")
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb+')
+            message = BitArray(bytes=f.read())
             last_chunk = init_vector
-            for chunk in iter(lambda: f.read(chunk_size), b''):
-                if len(chunk) != chunk_size:
-                    chunk += bytes(chunk_size - len(chunk))
-                chunk_decyph = function(chunk, key)
-                s.write(bytes_xor_bytes(last_chunk, chunk_decyph))
-                last_chunk = chunk
-            s.close()
+            sortie = open(file_out, 'wb+')
+            temp = int(len(message) / 128)
+            if temp != 1:
+                x = 0
+                sort = BitArray()
+                while x != temp:
+                    print("x:", x)
+                    chunk = message[128 * x:(128 * (x + 1))]
+                    print("chunk:", chunk)
+                    chunk_deciph = cam.decryption(chunk, key, True)
+                    print("decript:",chunk_deciph)
+                    chunk_deciph ^= last_chunk
+                    print("function decryption, decipher:", chunk_deciph)
+                    sort.append(chunk_deciph)
+                    print("sortie :", sort)
+                    last_chunk = chunk
+                    x += 1
+                sort.tofile(sortie)
+            else:
+                print("There is no enough blocks to apply CBC mode.")
+            sortie.close()
         f.close()
 
 
@@ -721,73 +757,94 @@ class PCBC(object):
     """Classe pour le mode PCBC"""
 
     @staticmethod
-    def cipher(function, file_in, file_out, chunk_size, key, init_vector):
+    def cipher(file_in, file_out, key, init_vector):
         """
         @brief      Mode PCBC chiffrement: chiffre le fichier avec la fonction
                     de chiffrement, la clé et le vecteur initial passé en
                     paramètre dans un autre fichier
 
-        @:param      function     La fonction de chiffrement
         @:param      file_in      Le fichier d'entrée
         @:param      file_out     Le fichier de sortie
-        @:param      chunk_size   La taille du bloc
         @:param      key          La clé en bytes
         @:param      init_vector  Le vecteur initial
 
         """
-        if not isinstance(init_vector, bytes):
-            raise TypeError("init_vector must be set to bytes")
-        if not isinstance(key, bytes):
-            raise TypeError("key must be set to bytes")
-        if len(init_vector) != chunk_size:
-            raise ValueError("init_vector must be the same size of the chunk size")
-
+        init_vector = BitArray(init_vector)
+        print("vector init : ", init_vector)
+        init_vector.tofile(open("vector.txt", "wb+"))
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb+')
+            message = BitArray(bytes=f.read())
+            mod = len(message) % 128
+            if mod != 0:
+                message.append(128 - mod)
+            print("message_cipher :", message)
+            sortie = open(file_out, 'wb+')
+            temp = int(len(message) / 128)
             last_bytes = init_vector
-            for chunk in iter(lambda: f.read(chunk_size), b''):
-                if len(chunk) != chunk_size:
-                    chunk += bytes(chunk_size - len(chunk))
-                chunk_xor = bytes_xor_bytes(chunk, last_bytes)
-                last_bytes = function(chunk_xor, key)
-                s.write(last_bytes)
-                last_bytes = bytes_xor_bytes(last_bytes, chunk)
-            s.close()
+            if temp != 1:
+                x = 0
+                sort = BitArray()
+                while x != temp:
+                    print("x:", x)
+                    chunk = message[128 * x:(128 * (x + 1))]
+                    print("chunk:", chunk)
+                    chunk_xor = chunk ^ last_bytes
+                    print("encrypt:", chunk_xor)
+                    last_bytes = cam.encryption(chunk_xor, key)
+                    print("function encryption, cipher:", last_bytes)
+                    sort.append(last_bytes)
+                    last_bytes = chunk ^ last_bytes
+                    x = x + 1
+                sort.tofile(sortie)
+            else:
+                print("There is no enough blocks to apply PCBC mode.")
+            sortie.close()
+        f.close()
+
 
     @staticmethod
-    def decipher(function, file_in, file_out, chunk_size, key, init_vector):
+    def decipher(file_in, file_out, key, init_vector):
         """
         @brief      Mode PCBC déchiffrement: déchiffre le fichier avec la
                     fonction de chiffrement, la clé et le vecteur initial
                     passé en paramètre dans un autre fichier
 
-        @:param      function     La fonction de chiffrement
-        @:param      file_in      Le fichier d'entré
+        @:param      file_in      Le fichier d'entrée
         @:param      file_out     Le fichier de sortie
-        @:param      chunk_size   La taille du bloc
-        @:param      key          La clé en bytes
+        @:param      key          Camellia Key Object
         @:param      init_vector  Le vecteur initial
 
         """
-        if not isinstance(init_vector, bytes):
-            raise TypeError("init_vector must be set to bytes")
-        if not isinstance(key, bytes):
-            raise TypeError("key must be set to bytes")
-        if len(init_vector) != chunk_size:
-            raise ValueError("init_vector must be the same size of the chunk size")
-
+        vector = open(init_vector, 'rb')
+        init_vector = BitArray(vector)
+        print("vector d'initialisation :", init_vector)
+        if len(init_vector) != 128:
+            raise ValueError("init_vector must be 128 bits.")
         with open(file_in, 'rb') as f:
-            s = open(file_out, 'wb+')
+            message = BitArray(bytes=f.read())
             last_chunk = init_vector
-            for chunk in iter(lambda: f.read(chunk_size), b''):
-                if len(chunk) != chunk_size:
-                    chunk += bytes(chunk_size - len(chunk))
-                chunk_decyph = function(chunk, key)
-                chunk_decyph = bytes_xor_bytes(last_chunk, chunk_decyph)
-                s.write(chunk_decyph)
-                last_chunk = bytes_xor_bytes(chunk, chunk_decyph)
-            s.close()
-
+            sortie = open(file_out, 'wb+')
+            temp = int(len(message) / 128)
+            if temp != 1:
+                x = 0
+                sort = BitArray()
+                while x != temp:
+                    print("x:", x)
+                    chunk = message[128 * x:(128 * (x + 1))]
+                    print("chunk:", chunk)
+                    chunk_deciph = cam.decryption(chunk, key, True)
+                    print("decript:",chunk_deciph)
+                    chunk_deciph ^= last_chunk
+                    print("function decryption, decipher:", chunk_deciph)
+                    sort.append(chunk_deciph)
+                    print("sortie :", sort)
+                    last_chunk = chunk ^ chunk_deciph
+                    x += 1
+                    sort.tofile(sortie)
+            else:
+                print("There is no enough blocks to apply PCBC mode.")
+            sortie.close()
+        f.close()
 
 # ===========================================
 #            IO for yaml File

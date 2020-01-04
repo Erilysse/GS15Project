@@ -14,18 +14,26 @@ from bitstring import BitArray, Bits
     Constant values : masks of different lengths and sigma, which represents "keys" in the F-function
     Hexadecimal notation.
 """
-MASK8  = BitArray("0x00000000000000ff")
-MASK32 = BitArray("0x00000000ffffffff")
-MASK64 = BitArray("0x0000000000000000ffffffffffffffff")
-MASK128= BitArray("0xffffffffffffffffffffffffffffffff")
+MASK8 = BitArray("0x00000000000000ff")
 
-k=0
+MASK32 = BitArray("0x00000000ffffffff")
+
+MASK128 = BitArray("0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff")
+
+MASK64 = BitArray("0x0000000000000000ffffffffffffffff")
+MASK64_192 = BitArray("0x00000000000000000000000000000000ffffffffffffffff")
+MASK64_256 = BitArray("0x000000000000000000000000000000000000000000000000ffffffffffffffff")
+
+
+k = 0
 global ka
 global kb
 
 def re_64b(array):
     return array[-64:]
 
+def re_128b(array):
+    return array[-128:]
 
 def re_64b_array(array_table):
     table_64b = []
@@ -33,10 +41,12 @@ def re_64b_array(array_table):
         table_64b.append(re_64b(a))
     return table_64b
 
+
 def agg_128b(array):
     return BitArray("0x0000000000000000") + array
 
-#RFC 3713 : we will use the key bellow in the F_function.
+
+# RFC 3713 : we will use the key bellow in the F_function.
 sigma = [
     BitArray("0xa09e667f3bcc908b"),
     BitArray("0xb67ae8584caa73b2"),
@@ -87,7 +97,7 @@ class CamelliaKey(object):
     """
     @brief   In this function, we initialize the object
     @:param  length         length of the camellia key
-    @:param  ckey_adress    camellia private key file adress
+    @:param  ckey_adress    camellia private key file address (need to be a Ox number)
 
     @:var   KL (key left block), KR (key right block)
     @:var   ckey (content of the file at the file adress ckey_adress)
@@ -98,31 +108,33 @@ class CamelliaKey(object):
         if self.length not in [128, 192, 256]:
             raise ValueError("Invalid key length, "
                              "it must be 128, 192 or 256 bits long!")
-        # force bytes
         file = open(ckey_address, "r")
         ckey = file.read()
         file.close()
-        ckey = "0x" + ckey
-        # ckey is a 128bits BitArray Object
+        # ckey is a BitArray Object
         ckey = BitArray(ckey)
         if self.length == 128:
             self.KL = ckey
             self.KR = BitArray(len(ckey))
         elif self.length == 192:
-            self.KL = ckey >> 64
-            self.KR = ((ckey & MASK64) << 64) | (~(ckey & MASK64))
+            self.KL = re_128b(ckey >> 64)
+            a = (ckey & MASK64_192) << 64
+            b = ~(ckey & MASK64_192)
+            b.replace("0xffffffffffffffff","0x0000000000000000")
+            self.KR = re_128b(a | b)
         else:
-            self.KL = ckey >> 128
-            self.KR = ckey & MASK128
-
-    """
-        @brief      Generate KA
-        @:return    ka
-    """
+            self.KL = re_128b(ckey >> 128)
+            self.KR = re_128b(ckey & MASK128)
 
     def generate_ka(self):
+        """
+            @brief      Generate KA
+            @:return    ka
+            :rtype: BitArray object
+        """
         # mise en 64 bits car f_function n'autorise que les entrées de 64bits et les ^ n'est autorisée que sur des
         # bytearray de même taille
+        a= self.KL ^ self.KR
         temp1 = re_64b((self.KL ^ self.KR) >> 64)
         temp2 = re_64b((self.KL ^ self.KR) & MASK64)
         temp2 ^= f_function(temp1, sigma[0])
@@ -143,6 +155,10 @@ class CamelliaKey(object):
     """
 
     def generate_kb(self):
+        """
+
+        :rtype: BitArray
+        """
         if self.length != 128:
             ka = self.generate_ka()
             temp1 = re_64b((ka ^ self.KR) >> 64)
@@ -153,7 +169,7 @@ class CamelliaKey(object):
             temp2 = agg_128b(temp2)
             kb = (temp1 << 64) | temp2
         else:
-            kb = "0x00000000000000000000000000000000"
+            kb = BitArray(Bits(int=0, length=128))
         return kb
 
     """
@@ -256,12 +272,11 @@ class CamelliaKey(object):
                     k22, k23, k24]
             return re_64b_array(subk)
 
-    """
-        @:brief     Generate_subkw aims to generate all the subkeys kw1, kw2, kw3 and kw4.
-        @:return    a table of subkweys
-    """
-
     def generate_subkw(self):
+        """
+            @:brief     Generate_subkw aims to generate all the subkeys kw1, kw2, kw3 and kw4.
+            @:return    a table of subkweys
+        """
         if self.length == 128:
             k = self.generate_ka()
         else:
@@ -275,13 +290,12 @@ class CamelliaKey(object):
         subkweys = [kw1, kw2, kw3, kw4]
         return re_64b_array(subkweys)
 
-    """
-        @:brief     Generate_subke aims to generate all the subkeys ke1, ke2, ke3, etc... this subkeys are different if 
-        the length of the key is 128 or if it is different
-        @:return    a table of all the subkeys
-    """
-
     def generate_subke(self):
+        """
+            @:brief     Generate_subke aims to generate all the subkeys ke1, ke2, ke3, etc... this subkeys are different if
+            the length of the key is 128 or if it is different
+            @:return    a table of all the subkeys
+        """
         ka = self.generate_ka()
         if self.length == 128:
             # make copy of ka to use rotation left
@@ -308,52 +322,50 @@ class CamelliaKey(object):
             kac = ka.copy()
             kac.rol(77)
             ke5 = kac >> 64
-            ke6 = kac >> MASK64
+            ke6 = kac & MASK64
             subke = [ke1, ke2, ke3, ke4, ke5, ke6]
             return re_64b_array(subke)
 
 
-"""
-    Divide a 128 bits BitArray Object in two 64bits BitArray object
-"""
 def divide_message(message):
+    """
+        Divide a 128 bits BitArray Object in two 64bits BitArray object
+    """
     mleft = re_64b(message >> 64)
     mright = re_64b(message & MASK64)
     return [mleft, mright]
 
 
-"""
-    @:param     subkw       the subkweys of a Camellia Key object
-    @:return    invsubkw    the subkweys in a different order for the decryption
-"""
-
-
 def inverse_subkweys(subkw):
+    """
+        @:param     subkw       the subkweys of a Camellia Key object
+        @:return    invsubkw    the subkweys in a different order for the decryption
+    """
     invsubkw = [subkw[2], subkw[3], subkw[0], subkw[1]]
     return invsubkw
+
 
 def inverse_subk(subkeys):
     subkeys.reverse()
     return subkeys
+
 
 def inverse_subke(subke):
     subke.reverse()
     return subke
 
 
-"""
-    Encryption of a 128 bits message with camellia algorithm
-    @:param chunk           a chunk of the message (bytearray 128)
-    @:param camellia_key    Camellia Key object
-"""
-def encryption(chunk, camellia_key):
-    # chunk is divided into 2 64-bit BitArray Object
-    subtext = divide_message(chunk)
+def encryption(chunk, camellia_key, last_chunk=False):
+    """
+        Encryption of a 128 bits message with camellia algorithm
+        @:param chunk           a chunk of the message (BitArray 128)
+        @:param camellia_key    Camellia Key object
+    """
     # list of subkeys 64 bits BitArray Object
     subk = camellia_key.generate_subkeys()
     subkw = camellia_key.generate_subkw()
     subke = camellia_key.generate_subke()
-    data_for_cypher = feistel(subtext, subkw, subk, subke, camellia_key)
+    data_for_cypher = feistel(chunk, subkw, subk, subke, camellia_key)
     # construction of the ciphertext  from temp1 and temp2
     cipher1 = (agg_128b(data_for_cypher[1]) << 64)
     cipher2 = agg_128b(data_for_cypher[0])
@@ -361,25 +373,25 @@ def encryption(chunk, camellia_key):
     return cipher
 
 
-
-"""
-    Decryption of a 128 bits cipher with camellia key
-    @:param chunk_cipher    a chunk of the cipher message
-    @:param camellia_key    Camellia Key object
-"""
-def decryption(chunk_cipher, camellia_key):
-    subtext_cipher = divide_message(chunk_cipher)
+def decryption(chunk_cipher, camellia_key, last_chunk=False):
+    """
+        Decryption of a 128 bits cipher with camellia key
+        @:param chunk_cipher    a chunk of the cipher message
+        @:param camellia_key    Camellia Key object
+    """
     invsubkw = inverse_subkweys(camellia_key.generate_subkw())
     invsubk = inverse_subk(camellia_key.generate_subkeys())
     invsubke = inverse_subke(camellia_key.generate_subke())
-    data_for_decipher = feistel(subtext_cipher, invsubkw, invsubk, invsubke, camellia_key)
+    data_for_decipher = feistel(chunk_cipher, invsubkw, invsubk, invsubke, camellia_key)
     decipher1 = (agg_128b(data_for_decipher[0]) << 64)
     decipher2 = agg_128b(data_for_decipher[1])
     plaintext = decipher1 | decipher2
+    # only for the last chunk
+    plaintext.rol(64)
     return plaintext
 
 
-def feistel(subtext, subkw, subk, subke, camellia_key):
+def feistel(chunk, subkw, subk, subke, camellia_key):
     """
         @:param subtext         list of 2 64 bits BitArray Object
         @:param subkw           list of subkweys 64bits BitArray Object
@@ -387,9 +399,11 @@ def feistel(subtext, subkw, subk, subke, camellia_key):
         @:param subke           list of subke-eys 64bits BitArray Object
         @:param camellia_key    Camellia Key object
     """
+    # chunk is divided into 2 64-bit BitArray Object
+    message = divide_message(chunk)
     # Prewhitening of the left part and right part of the message
-    temp1 = subtext[0] ^ subkw[0]
-    temp2 = subtext[1] ^ subkw[1]
+    temp1 = message[0] ^ subkw[0]
+    temp2 = message[1] ^ subkw[1]
     # begin of first 6-round feistel
     temp2 ^= f_function(temp1, subk[0])
     temp1 ^= f_function(temp2, subk[1])
@@ -432,39 +446,16 @@ def feistel(subtext, subkw, subk, subke, camellia_key):
     return [d1cipher, d2cipher]
 
 
-"""
-    round6feistel generalize the six round in feistel with the f_function and the subkeys
-    @:param     temp1    temporary var
-    @:param     temp2    temporary var
-    @:param     subk     table of the subkeys used in this feistel's round
-    @:param     firstknb number of the first subkey used in feistel's round
-    
-    @:return    tab      table of modified temp1 and temp2
-"""
-
-
-def round6feistel(temp1, temp2, subk, firstknb):
-    temp2 ^= f_function(temp1, subk[firstknb])
-    temp1 ^= f_function(temp2, subk[firstknb + 1])
-    temp2 ^= f_function(temp1, subk[firstknb + 2])
-    temp1 ^= f_function(temp2, subk[firstknb + 3])
-    temp2 ^= f_function(temp1, subk[firstknb + 4])
-    temp1 ^= f_function(temp2, subk[firstknb + 5])
-    tab = [temp1, temp2]
-    return tab
-
-
 def f_function(inputdata, sigma):
     """
         f_function
         @:param     inputdata 64 bits
         @:param     subkey 64 bits
-
         @:var       SBOX1[], SBOX2[], SBOX3[], SBOX4[]
-
         @:return    fout 64 bits
     """
     x = inputdata ^ sigma
+    # need to map x with GF(2^8 and the polynom :x**8+x**5+x**3+x**2+1)
     t1 = x >> 56
     t2 = (x >> 48) & MASK8
     t3 = (x >> 40) & MASK8
@@ -473,23 +464,39 @@ def f_function(inputdata, sigma):
     t6 = (x >> 16) & MASK8
     t7 = (x >> 8) & MASK8
     t8 = x & MASK8
-    SBOX1_t1 = t1 ^ x**6 & x**4 & x**3 & x
-    SBOX2_t2 = t2**(-1)
-    SBOX3_t3 = t3 & x**7 & x**6 & x**5 & x**4 & x**3 & x**2 & x & 1
-    SBOX4_t4 = (t4 & x**6 & x**4 & x**2 & 1) ^ x**7 & x**5 & x**3 & x
-    SBOX2_t5 = t5 ^ x**5 & x**2 & 1
-    SBOX3_t6 = (t6 ^ x**3 & x**3 & x**2 & x & 1) **(-1)
-    SBOX4_t7 = t7 ^ x**7 & x**6 & x**5 & x**4 & x**3 & x**2 & x & 1
-    SBOX1_t8 = (t8 ^ x**7 & x**5 & x**3 & x) ^ x**6 & x**4 & x**2 & 1
-    y1 = SBOX1_t1 ^ SBOX3_t3 ^ SBOX4_t4 ^ SBOX3_t6 ^ SBOX4_t7 ^ SBOX1_t8
-    y2 = SBOX1_t1 ^ SBOX2_t2 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX4_t7 ^ SBOX1_t8
-    y3 = SBOX1_t1 ^ SBOX2_t2 ^ SBOX3_t3 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX1_t8
-    y4 = SBOX2_t2 ^ SBOX3_t3 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX4_t7
-    y5 = SBOX1_t1 ^ SBOX2_t2 ^ SBOX3_t6 ^ SBOX4_t7 ^ SBOX1_t8
-    y6 = SBOX2_t2 ^ SBOX3_t3 ^ SBOX2_t5 ^ SBOX4_t7 ^ SBOX1_t8
-    y7 = SBOX3_t3 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX1_t8
-    y8 = SBOX1_t1 ^ SBOX4_t4 ^ SBOX2_t5 ^ SBOX3_t6 ^ SBOX4_t7
+    # SBOX for the project - not working
+    # https://cryptography.fandom.com/wiki/Rijndael_S-box s'inspirer de Rijndael
     """
+    x0 = x.uint
+    print(x0)
+    SBOX1 = t1.int ^ (x0 ** 6) & (x0 ** 4) & (x0 ** 3) & x0
+    print(SBOX1)
+    SBOX1 = BitArray(Bits(int=SBOX1, length=64))
+    print(SBOX1)
+    SBOX2 = t2.int ** (-1)
+    SBOX3 = t3.int & (x0 ** 7) & (x0 ** 6) & (x0 ** 5) & (x0 ** 4) & (x0 ** 3) & x0 ** 2 & x0 & 1
+    SBOX4 = (t4.int & (x0 ** 6) & (x0 ** 4) & (x0 ** 2) & 1) ^ x0 ** 7 & x0 ** 5 & x0 ** 3 & x0
+    SBOX5 = t5.int ^ x0 ** 5 & x0 ** 2 & 1
+    SBOX6 = ((t6.int ^ x0 ** 3) & x0 ** 3 & x0 ** 2 & x0 & 1) ** (-1)
+    SBOX7 = t7.int ^ x0 ** 7 & x0 ** 6 & x0 ** 5 & x0 ** 4 & x0 ** 3 & x0 ** 2 & x0 & 1
+    SBOX8 = (t8.int ^ x0 ** 7 & x0 ** 5 & x0 ** 3 & x0) ^ x0 ** 6 & x0 ** 4 & x0 ** 2 & 1
+    SBOX2 = BitArray(Bits(int=SBOX2, length=64))
+    SBOX3 = BitArray(Bits(int=SBOX3, length=64))
+    SBOX4 = BitArray(Bits(int=SBOX4, length=64))
+    SBOX5 = BitArray(Bits(int=SBOX5, length=64))
+    SBOX6 = BitArray(Bits(int=SBOX6, length=64))
+    SBOX7 = BitArray(Bits(int=SBOX7, length=64))
+    SBOX8 = BitArray(Bits(int=SBOX8, length=64))
+    y1 = SBOX1 ^ SBOX3 ^ SBOX4 ^ SBOX6 ^ SBOX7 ^ SBOX8
+    y2 = SBOX1 ^ SBOX2 ^ SBOX4 ^ SBOX5 ^ SBOX7 ^ SBOX8
+    y3 = SBOX1 ^ SBOX2 ^ SBOX3 ^ SBOX5 ^ SBOX6 ^ SBOX8
+    y4 = SBOX2 ^ SBOX3 ^ SBOX4 ^ SBOX5 ^ SBOX6 ^ SBOX7
+    y5 = SBOX1 ^ SBOX2 ^ SBOX6 ^ SBOX7 ^ SBOX8
+    y6 = SBOX2 ^ SBOX3 ^ SBOX5 ^ SBOX7 ^ SBOX8
+    y7 = SBOX3 ^ SBOX4 ^ SBOX5 ^ SBOX6 ^ SBOX8
+    y8 = SBOX1 ^ SBOX4 ^ SBOX5 ^ SBOX6 ^ SBOX7
+    """
+    # SBOX initial - working
     t1 = SBOX1[t1.int]
     t2 = SBOX2(t2.int)
     t3 = SBOX3(t3.int)
@@ -514,23 +521,20 @@ def f_function(inputdata, sigma):
     y6 = t2 ^ t3 ^ t5 ^ t7 ^ t8
     y7 = t3 ^ t4 ^ t5 ^ t6 ^ t8
     y8 = t1 ^ t4 ^ t5 ^ t6 ^ t7
-    """
     fout = (y1 << 56) | (y2 << 48) | (y3 << 40) | (y4 << 32) | (y5 << 24) | (y6 << 16) | (y7 << 8) | y8
     return fout
 
 
-"""
-    fl_function takes two parameters :
-    @:param     inputdata (64-bit)
-    @:param     subkey (64-bit)
-
-    @:var       x1, x2, k1, k2 (32-bit unsigned integer)
-
-    @:return    data flout (64-bit)
-"""
-
-
 def fl_function(inputdata, subkey):
+    """
+        fl_function takes two parameters :
+        @:param     inputdata (64-bit)
+        @:param     subkey (64-bit)
+
+        @:var       x1, x2, k1, k2 (32-bit unsigned integer)
+
+        @:return    data flout (64-bit)
+    """
     x1 = inputdata >> 32
     x2 = inputdata & MASK32
     k1 = subkey >> 32
@@ -543,18 +547,16 @@ def fl_function(inputdata, subkey):
     return flout
 
 
-"""
-    flinv_function is the inverse function of the FL_function
-    @:param     inputdata (64-bit)
-    @:param     subkey (64-bit)
-
-    @:var       y1, y2, k1, k2 (32-bit unsigned integer)
-
-    @:return    data flout (64-bit)
-"""
-
-
 def flinv_function(inputdata, subkey):
+    """
+        flinv_function is the inverse function of the FL_function
+        @:param     inputdata (64-bit)
+        @:param     subkey (64-bit)
+
+        @:var       y1, y2, k1, k2 (32-bit unsigned integer)
+
+        @:return    data flout (64-bit)
+    """
     y1 = inputdata >> 32
     y2 = inputdata & MASK32
     k1 = subkey >> 32
@@ -565,7 +567,3 @@ def flinv_function(inputdata, subkey):
     y2 ^= varand
     flinvout = (y1 << 32) | y2
     return flinvout
-
-    
-
-
