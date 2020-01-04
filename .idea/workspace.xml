@@ -2,13 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="65ba6a6d-5a2e-4c34-a815-8cb7c36a8074" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/GS15Project.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/GS15Project.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Camellia" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Camellia.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/Menu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto_utils" beforeDir="false" afterPath="$PROJECT_DIR$/lib/crypto_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hash.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/hash.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Camellia.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Camellia.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/crypto_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/crypto_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/128key.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/128key.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/192key.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/192key.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/256key.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/256key.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/file_test.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/file_test.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/testmessage.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/testmessage.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
