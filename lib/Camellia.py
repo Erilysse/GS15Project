@@ -24,16 +24,18 @@ MASK64 = BitArray("0x0000000000000000ffffffffffffffff")
 MASK64_192 = BitArray("0x00000000000000000000000000000000ffffffffffffffff")
 MASK64_256 = BitArray("0x000000000000000000000000000000000000000000000000ffffffffffffffff")
 
-
 k = 0
 global ka
 global kb
 
+
 def re_64b(array):
     return array[-64:]
 
+
 def re_128b(array):
     return array[-128:]
+
 
 def re_64b_array(array_table):
     table_64b = []
@@ -115,16 +117,18 @@ class CamelliaKey(object):
         ckey = BitArray(ckey)
         if self.length == 128:
             self.KL = ckey
-            self.KR = BitArray(len(ckey))
+            self.KR = BitArray(Bits(int=0, length=128))
         elif self.length == 192:
             self.KL = re_128b(ckey >> 64)
             a = (ckey & MASK64_192) << 64
             b = ~(ckey & MASK64_192)
-            b.replace("0xffffffffffffffff","0x0000000000000000")
+            b.replace("0xffffffffffffffff", "0x0000000000000000")
             self.KR = re_128b(a | b)
-        else:
+        elif self.length == 256:
             self.KL = re_128b(ckey >> 128)
             self.KR = re_128b(ckey & MASK128)
+        else:
+            print("what the fuck")
 
     def generate_ka(self):
         """
@@ -134,9 +138,9 @@ class CamelliaKey(object):
         """
         # mise en 64 bits car f_function n'autorise que les entrées de 64bits et les ^ n'est autorisée que sur des
         # bytearray de même taille
-        a= self.KL ^ self.KR
-        temp1 = re_64b((self.KL ^ self.KR) >> 64)
-        temp2 = re_64b((self.KL ^ self.KR) & MASK64)
+        a = self.KL ^ self.KR
+        temp1 = re_64b(a >> 64)
+        temp2 = re_64b(a & MASK64)
         temp2 ^= f_function(temp1, sigma[0])
         temp1 ^= f_function(temp2, sigma[1])
         temp1 ^= re_64b((self.KL >> 64))
@@ -292,8 +296,8 @@ class CamelliaKey(object):
 
     def generate_subke(self):
         """
-            @:brief     Generate_subke aims to generate all the subkeys ke1, ke2, ke3, etc... this subkeys are different if
-            the length of the key is 128 or if it is different
+            @:brief     Generate_subke aims to generate all the subkeys ke1, ke2, ke3, etc... this subkeys are different
+            if the length of the key is 128 or if it is different
             @:return    a table of all the subkeys
         """
         ka = self.generate_ka()

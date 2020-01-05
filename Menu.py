@@ -275,7 +275,7 @@ def decrypt():
 
 def sign():
     file_in_address = input("Where is the file you want to sign ?")
-    file_in_address = str(file_in_address)
+
     # need public key, private key for calcul
     # need file in and out adress for hash
     # signature = si.sign_dsa(public_key,private_key,file_in_address,"file_hash_sended.txt")
@@ -284,9 +284,7 @@ def sign():
 
 def verify_sign():
     file_received_address = input("Where is the file you want to verify its signature ?")
-    file_received_address = str(file_received_address)
     file_hash_address = input("Where is the hash file ?")
-    file_hash_address = str(file_hash_address)
     public_key = input("Where is the public key file ?")
     private_key = input("Where is the private key file ?")
     """ si.sign_dsa(public_key, private_key, file_received_address, "file_hash_received.txt")
@@ -299,7 +297,14 @@ def verify_sign():
 
 
 def all():
-    return
+    generate_key_pairs()
+    generate_certif()
+    check_certif()
+    share_secret_key()
+    encrypt()
+    decrypt()
+    sign()
+    verify_sign()
 
 
 def switchcase(case_number):

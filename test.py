@@ -5,6 +5,7 @@ import os
 os.chdir("tests")
  # choose your type of key : 128key or 192key or 256key
 a = input("Which key length ? 128 ; 192 ; 256 ?")
+a = int(a)
 if a == 128:
     camellia_key = cam.CamelliaKey("128key.txt", 128)
 elif a == 192:
@@ -29,10 +30,10 @@ print(ms)
 cipher = cam.encryption(ms, camellia_key)
 print("cipher :")
 print(cipher)
-f = open("ciphermessage.txt","wb+")
+f = open("ciphermessage","wb+")
 cipher.tofile(f)
 f.close()
-f = open("ciphermessage.txt","rb")
+f = open("ciphermessage","rb")
 ci = BitArray(bytes=f.read())
 f.close()
 decipher = cam.decryption(ci, camellia_key)
@@ -50,7 +51,7 @@ f.close()
 
     #Test ECB mode with 128 key
 """
-"""
+
 message_add = "file_test.txt"
 if message_add == "testmessage.txt":
     message = open(message_add, "r").read()
